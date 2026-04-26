@@ -25,11 +25,15 @@
 - **Pull (default).** Macro state is a cheap, read-only context (`MacroContext`). Agents and smart objects reference macro variables as inputs to scoring. Keeps the seam thin and avoids propagation steps.
 - **Push (interrupts only).** Forced actions (evacuate, eviction, mandatory shift) are injected as agent interrupts — same mechanism as need-threshold interrupts from 0004; the macro layer is just another source.
 - **Smart-object macro gating.** Smart objects evaluate conditions against macro state at advertising time (e.g. "open if curfew not in effect"). This is how policy and events reshape the available action space without modifying agent code.
+- **Macro-monitored re-check.** Every `MacroState` predicate in an advertisement is implicitly macro-monitored: at each macro tick boundary, the sim re-evaluates the macro predicates of every in-flight action. If any now fails, the action is interrupted with `InterruptSource::MacroPreconditionFailed` (per 0011). Non-macro predicates are not re-checked — agents commit to their own state changes. Cheap because re-check is only macro predicates and only once per sim-hour.
 
 ### Micro → macro: aggregation + promoted events
 
 - **Aggregation sweep** at each macro tick. Population, employment rate, occupancy, average wage — recomputed by sweeping micro state. Cheap at hundreds-of-agents scale.
-- **Promoted events** — explicit emission from agents/systems for notable specifics. Buffered between macro ticks; processed at the next macro tick boundary. May trigger macro state changes (crime spike, reputation drop, news beat).
+- **Promoted events** — explicit emission from agents/systems for notable specifics. May trigger macro state changes (crime spike, reputation drop, news beat).
+  - **Channel.** A bounded ring buffer in sim state (part of saves). Events are appended synchronously during effect application at end-tick (per 0011); the channel is the canonical event log.
+  - **IDs.** Monotonic per-sim counter allocated at emission — deterministic.
+  - **Reads, not drains.** Both the macro layer and the host's WS reader (per 0013) consume events via independent cursors. Macro reads at each macro tick boundary; host reads at sample boundaries. Events fall off the ring when the buffer fills; consumers that fall behind lose events (explicit limitation, not silent corruption).
 
 ### Promoted-event taxonomy (v0)
 
@@ -37,12 +41,13 @@ Small typed enum, grow as needed:
 
 - `Crime` (subtype: theft, assault, murder, …)
 - `Death`
-- `Birth`
 - `Fire`
 - `Disaster` (subtype)
 - `NotableAchievement` (catch-all for unusual positive events)
 
 Each event carries minimal payload — involved agent IDs, location, timestamp, type-specific fields.
+
+`Birth` is intentionally absent at v0. Population renewal happens via macro-driven migration of fully-formed adults (see 0010 and 0011's "Agent generation" section). `Birth` returns as a promoted event when reproduction lands post-v0.
 
 ### Pricing & economy
 
@@ -94,7 +99,7 @@ Intentionally tight. Each variable comes with a cost: somewhere, agent scoring o
 ## Macro tick — order of operations
 
 1. Recompute derived aggregates from current micro snapshot.
-2. Ingest buffered promoted events; update simulated state accordingly.
+2. Read promoted events newer than the macro layer's cursor; update simulated state accordingly; advance the cursor.
 3. Advance simulated dynamics (weather model step, supply/demand pricing step, ongoing-event progression).
 4. Apply pending player policy changes.
 5. Publish updated `MacroContext` for micro reads in the next 60 ticks.

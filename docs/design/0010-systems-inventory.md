@@ -49,7 +49,7 @@
 
 ## Explicitly out of scope for v0 (deferred)
 
-- **Family, reproduction, romance.** Births are a promoted event (per 0009); pregnancy / parenting / child-rearing / romantic relationships as full systems are post-v0. Population renewal in v0 via macro-level abstracted migration + minimal birth abstraction.
+- **Family, reproduction, romance.** Pregnancy / parenting / child-rearing / romantic relationships as full systems are post-v0. **Population renewal at v0 happens entirely via macro-driven migration** — fully-formed adult geckos arrive with procedurally generated state (see 0011's "Agent generation"). `Birth` is *not* a v0 promoted event; it returns when reproduction lands.
 - **Education.** Schools, formal learning, child progression — post-v0.
 - **Transit & vehicles.** Walking only (per 0007).
 - **News / gossip propagation.** Promoted events surface to macro directly; agent-to-agent rumor mill is post-v0.

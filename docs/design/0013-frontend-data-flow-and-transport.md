@@ -29,7 +29,7 @@
 
 - `Delta`: per-entity-full-state for any changed entity, plus added/removed lists.
 - `Snapshot`: periodic full snapshot every **60 ticks (1 sim-hour)** for resync robustness.
-- `PromotedEvent` (per 0009): emitted as it occurs, for UI surfacing.
+- `PromotedEvent` (per 0009): the host maintains a cursor over the sim's promoted-event ring; at each sample boundary it sends events newer than the cursor and advances. From the client's perspective, "as it occurs" is bounded by the 30 Hz sample rate.
 
 ### Renderer-facing state (much smaller than sim state)
 

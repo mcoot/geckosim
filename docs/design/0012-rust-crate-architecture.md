@@ -58,6 +58,18 @@ core/src/
 └── save/            serde → SaveData
 ```
 
+### Identity surfaces
+
+The sim has three identity surfaces and one mapping pattern:
+
+- **Stable IDs** (`AgentId`, `ObjectId`, `BuildingId`, `LeafAreaId`, `HousingId`, `EmploymentId`, `HouseholdId`, `BusinessId`, `CrimeIncidentId`, `MemoryEntryId`, `AccessoryId`, `PromotedEventId`). `u64` newtypes per 0011. **Canonical** — used in saves, the wire protocol (per 0013), and all cross-references between sim entities.
+- **`bevy_ecs::Entity` handles.** Opaque to consumers; allocated by the ECS at entity creation. **Never serialized.** Used only inside `core` for queries.
+- **Wire IDs** (per 0013). The same stable IDs above, serialized directly. No translation layer between the protocol and the sim.
+
+`core` maintains bidirectional `StableId ↔ Entity` maps as ECS resources. On save, only the stable IDs are written. On load, stable IDs are read first, fresh `Entity` handles are allocated by the ECS, and the maps are rebuilt before any system runs.
+
+The public `Sim` API methods (`snapshot`, `delta_since`, `apply_input`) speak in stable IDs only.
+
 ### Hosting model — native binary + WebSocket for v0
 
 - **v0:** native `host` binary; Next.js frontend connects via WebSocket. Frontend hot-reloads independently of the sim.

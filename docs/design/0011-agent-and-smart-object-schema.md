@@ -150,7 +150,7 @@ CommittedAction {
 }
 
 Interrupt {
-  source: InterruptSource,               // NeedThreshold | MacroForcedAction | EnvironmentalEvent | AgentTargeted
+  source: InterruptSource,               // NeedThreshold | MacroForcedAction | MacroPreconditionFailed | EnvironmentalEvent | AgentTargeted
   urgency: f32,
   payload: InterruptPayload,
 }
@@ -238,11 +238,43 @@ Pick **weighted-random from top-N** (per 0004), not strict argmax.
 
 ### Effect application
 
-**Effects apply atomically at end-tick** of an action. Cleaner than streaming during duration; matches event-driven decision-making (0004); long-duration actions with intermediate effects can be modeled as multi-step actions chaining shorter advertisements.
+**Effects apply atomically at end-tick** of an action that completes normally. Cleaner than streaming during duration; matches event-driven decision-making (0004); long-duration actions with intermediate effects can be modeled as multi-step actions chaining shorter advertisements (chaining itself is deferred — see open questions).
+
+### Effect application under interruption
+
+When an action is interrupted (need threshold crossed, macro-precondition failed per 0009, environmental event, agent-targeted), each effect resolves by kind:
+
+| Effect kind                                                                                 | Behavior on interruption                                                  |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `AgentNeedDelta`, `AgentMoodDelta`, `AgentSkillDelta`, `MoneyDelta`                         | **Pro-rata** by completion fraction (e.g. interrupted at 60% → 60% applies). |
+| `InventoryDelta`, `MemoryGenerate`, `RelationshipDelta`, `HealthConditionChange`, `PromotedEvent` | **All-or-nothing** — suppressed entirely on interrupt; applied only on normal completion. |
+
+Rule of thumb: continuous effects scale; discrete events don't. Advertisements that need different semantics (e.g. "rob the bank" shouldn't pay 60% on interruption) should split into multiple shorter actions; a per-effect override can land later if needed.
+
+### Promoted-event emission
+
+`Effect::PromotedEvent` allocates a `PromotedEventId` from the sim's monotonic counter and synchronously appends to the promoted-event ring (per 0009). Emission happens during effect application at end-tick — same atomicity as other effects, so promoted events are suppressed when the action is interrupted (they're in the all-or-nothing bucket above).
 
 ### Schedules
 
 Schedules live on the `Job` entity (employer's hours), not on the agent. Agent reads its schedule via `employment`. Personal habits at v0 are emergent from needs + personality — no per-agent personal schedule field.
+
+### Agent generation (migration arrivals)
+
+At v0, new geckos enter the sim only via macro-driven migration (per 0010). Each arrival is created at a macro tick boundary with:
+
+- **Identity.** Fresh `AgentId`, generated `name`, sampled `age` (adult range), `gender`, `birth_tick = current_tick − age_in_ticks`, `alive: true`.
+- **Appearance.** Procedural from the new agent's seed, per the rules above.
+- **Personality.** Big Five sampled from a configured prior distribution (default roughly uniform, centered on zero).
+- **Skills.** Sampled from an age-appropriate distribution.
+- **Mood, needs.** Initialized to neutral values.
+- **Memory, relationships, criminal record, pending consequences, inventory.** Empty.
+- **Money.** Sampled from a starting distribution (typically tied to age and macro cost-of-living).
+- **Housing.** Assigned to a vacant residence; if no shared assignment is available, a single-person `HouseholdId` is created.
+- **Employment.** Optionally assigned to an open job (per macro employment rate).
+- **RNG.** New seeded sub-stream from the world seed.
+
+When reproduction lands post-v0, in-sim births grow a parallel pipeline that initializes from parental state instead.
 
 ### Authoring format
 
