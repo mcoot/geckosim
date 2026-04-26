@@ -9,21 +9,19 @@ use gecko_sim_protocol::{
 };
 
 fn sample_snapshot() -> Snapshot {
-    Snapshot {
-        tick: 7,
-        agents: vec![
-            AgentSnapshot {
-                id: AgentId::new(0),
-                name: "Alice".to_string(),
-                needs: Needs::full(),
-            },
-            AgentSnapshot {
-                id: AgentId::new(1),
-                name: "Bob".to_string(),
-                needs: Needs::full(),
-            },
-        ],
-    }
+    sample_snapshot_with_agents(2)
+}
+
+fn sample_snapshot_with_agents(count: usize) -> Snapshot {
+    let names = ["Alice", "Bob", "Carol", "Dave", "Eve"];
+    let agents = (0..count)
+        .map(|i| AgentSnapshot {
+            id: AgentId::new(i as u64),
+            name: names.get(i).copied().unwrap_or("Agent").to_string(),
+            needs: Needs::full(),
+        })
+        .collect();
+    Snapshot { tick: 7, agents }
 }
 
 fn roundtrip<T>(value: &T)
@@ -106,4 +104,31 @@ fn client_messages_use_tagged_enum_layout() {
 #[test]
 fn protocol_version_is_one() {
     assert_eq!(PROTOCOL_VERSION, 1);
+}
+
+#[test]
+fn empty_snapshot_roundtrips_with_explicit_empty_agents_array() {
+    let snapshot = sample_snapshot_with_agents(0);
+    let encoded = serde_json::to_string(&snapshot).expect("serialize");
+    // Empty Vec must serialise as `"agents":[]`, not be omitted.
+    assert!(
+        encoded.contains("\"agents\":[]"),
+        "expected explicit empty array, got {encoded}"
+    );
+    roundtrip(&snapshot);
+}
+
+#[test]
+fn single_agent_snapshot_roundtrips() {
+    roundtrip(&sample_snapshot_with_agents(1));
+}
+
+#[test]
+fn three_agent_snapshot_roundtrips() {
+    roundtrip(&sample_snapshot_with_agents(3));
+}
+
+#[test]
+fn wire_format_json_variant_roundtrips() {
+    roundtrip(&WireFormat::Json);
 }
