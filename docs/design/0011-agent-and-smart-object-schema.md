@@ -37,6 +37,7 @@ Gecko {
   // Spatial
   current_leaf: LeafAreaId,
   position:     Vec2,           // within leaf area, 0.5m grid for object-aligned positions
+  facing:       Vec2,           // unit direction the agent is oriented; updated on movement / object interaction
 
   // Per-system state (numbering matches 0010)
 
@@ -83,9 +84,10 @@ Gecko {
   inventory:    BoundedVec<InventorySlot, 8>,
 
   // Decision runtime (per 0004)
-  current_action:    Option<CommittedAction>,
+  current_action:     Option<CommittedAction>,
   pending_interrupts: Vec<Interrupt>,
-  known_places:      BoundedVec<LeafAreaId, 64>,
+  recent_actions:     BoundedRing<RecentActionEntry, 16>,    // for recency_penalty in scoring; FIFO eviction
+  known_places:       BoundedVec<LeafAreaId, 64>,
 
   // Determinism (per 0008)
   rng:          PrngState,                 // seeded sub-stream of world seed
@@ -111,6 +113,8 @@ Appearance {
 ```
 
 Accessories may graduate to a worn-item system later if/when they need sim mechanics; until then, slot the data and defer the depth (same pattern as deferred vehicles in 0007).
+
+**Save behavior:** intrinsic appearance is **stored verbatim** in the save, not re-derived from seed on load. This protects existing geckos against changes to the procgen palettes between sim versions — visual identity remains stable across content updates.
 
 ### Supporting types (sketch)
 
@@ -171,6 +175,11 @@ ItemMeta {
   origin:      Option<AgentId>,    // source / previous owner (theft, gift)
   origin_tick: u64,                // when the current owner acquired it
   flags:       ItemFlags,          // bitflags: Stolen | Gift | Contraband | …
+}
+
+RecentActionEntry {
+  ad_template:    (ObjectTypeId, AdvertisementId),  // template identity across instances
+  completed_tick: u64,
 }
 ```
 
