@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = ["crates/core", "crates/content", "crates/protocol", "crates/host"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["gecko-sim contributors"]
+repository = "https://github.com/jspearritt/geckosim"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+bevy_ecs = "0.16"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+glam = { version = "0.30", features = ["serde"] }
+rand = "0.9"
+rand_pcg = { version = "0.9", features = ["serde"] }
+ron = "0.10"
+anyhow = "1"
+bitflags = { version = "2", features = ["serde"] }
+
+gecko-sim-core = { path = "crates/core" }
+gecko-sim-content = { path = "crates/content" }
+gecko-sim-protocol = { path = "crates/protocol" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+warnings = "deny"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"

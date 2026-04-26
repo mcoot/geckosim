@@ -1,0 +1,19 @@
+[package]
+name = "gecko-sim-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Gecko-sim host: native binary that runs the sim and (later) serves WebSocket clients."
+
+[dependencies]
+gecko-sim-core.workspace = true
+gecko-sim-content.workspace = true
+gecko-sim-protocol.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+
+[lints]
+workspace = true
