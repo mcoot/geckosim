@@ -23,6 +23,7 @@ The sim must support visually smooth observation, fast time-skip for emergent st
 - **Seeded RNG** — global seed plus per-agent and per-system sub-seeds derived from it.
 - **Replay** = same seed + same player inputs applied at the same tick numbers → identical outcome.
 - Saves are full state at a tick boundary; no mid-tick saves.
+- **Macro tick placement.** On tick numbers divisible by 60, the macro tick (per 0009) runs **first**, before any micro processing for that tick. Snapshots taken at such a boundary therefore reflect post-macro state.
 
 ### Action durations & decisions
 

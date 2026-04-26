@@ -89,6 +89,19 @@ Implications:
 - `bevy_ecs` supports single-threaded schedulers.
 - Profile-driven parallelism can be added later for specific systems with deterministic merge ordering.
 
+### Concurrency model — sim and host threads
+
+The sim runs ticks in a loop on its own thread. **Between ticks**, it processes:
+
+1. **Player input queue** — drained from a channel populated by the WS server thread (per 0013).
+2. **Snapshot request flag** — when set by the host, the sim copies current state into a snapshot channel and signals the host.
+
+The host's WS thread sets the snapshot request flag at each 30 Hz sample boundary and waits on the channel. There is no preemption — "pause for the read" is just "yield between ticks."
+
+**Headroom check.** At 64× speed (64 sim-ticks / sec) each tick has a budget of ~15 ms. A snapshot copy is expected to take ~1–5 ms (a few hundred KB of state). Sample requests arrive every ~33 ms. The sim has comfortable headroom to service requests without missing tick deadlines, even at maximum speed.
+
+If the sim ever falls behind its budget, the host's sample timer slips but the sim itself remains deterministic — a slipped sample is a UX issue, not a correctness issue.
+
 ### Sim core public API
 
 ```rust

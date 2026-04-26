@@ -49,8 +49,8 @@ Gecko {
   // (3) Mood
   mood:         Mood { valence, arousal, stress },   // 3 × f32
 
-  // (4) Memory — bounded ring, importance-weighted eviction (cap 100)
-  memory:       BoundedRing<MemoryEntry, 100>,
+  // (4) Memory — bounded ring, importance × recency eviction (cap 500; see Memory eviction below)
+  memory:       BoundedRing<MemoryEntry, 500>,
 
   // (5) Relationships — sparse; only non-trivial pairs stored
   relationships: SparseMap<AgentId, RelationshipEdge>,
@@ -154,6 +154,24 @@ Interrupt {
   urgency: f32,
   payload: InterruptPayload,
 }
+
+TargetSpec =
+  | Self_                                    // the acting agent
+  | OwnerOfObject                            // owner of the smart object
+  | OtherAgent { id: AgentId }               // explicit reference
+  | NearbyAgent { selector: NearbySelector } // Random | Closest | HighestAffinity | …
+
+SituationalModifier =
+  | MoodWeight              { dim: MoodDim, weight: f32 }
+  | MacroVarWeight          { var: MacroVar, weight: f32 }
+  | TimeOfDayWeight         { peak_tick: u64, falloff: u32 }
+  | RelationshipWithTarget  { field: RelField, weight: f32 }
+
+ItemMeta {
+  origin:      Option<AgentId>,    // source / previous owner (theft, gift)
+  origin_tick: u64,                // when the current owner acquired it
+  flags:       ItemFlags,          // bitflags: Stolen | Gift | Contraband | …
+}
 ```
 
 ### Smart-object shape
@@ -236,6 +254,14 @@ score(agent, ad, macro_ctx) =
 
 Pick **weighted-random from top-N** (per 0004), not strict argmax.
 
+Where:
+
+```
+personality_modifier = max(0.1, 1.0 + sensitivity * dot(agent.personality, ad.score_template.personality_weights))
+```
+
+with `sensitivity` ≈ 0.5 (tunable). The clamp keeps the multiplier strictly positive; the linear form means personality biases the score by roughly ±50% rather than flipping its sign. The dot product is well-defined: personality components live in `[-1, 1]` and `personality_weights` likewise — an extraverted agent and an extravert-friendly action align to a positive product.
+
 ### Effect application
 
 **Effects apply atomically at end-tick** of an action that completes normally. Cleaner than streaming during duration; matches event-driven decision-making (0004); long-duration actions with intermediate effects can be modeled as multi-step actions chaining shorter advertisements (chaining itself is deferred — see open questions).
@@ -259,6 +285,13 @@ Rule of thumb: continuous effects scale; discrete events don't. Advertisements t
 
 Schedules live on the `Job` entity (employer's hours), not on the agent. Agent reads its schedule via `employment`. Personal habits at v0 are emergent from needs + personality — no per-agent personal schedule field.
 
+The "virtual need" framing from 0004 is implemented as a **scoring modifier**, not a schema field. The scoring function reads `agent.employment` and `current_tick` directly:
+
+- If the action's location matches `employment.workplace` and `current_tick` is inside `employment.schedule.work_window`, the score receives a positive boost.
+- For non-work actions during the work window, the score is penalised proportionally to how overdue the agent is.
+
+No new state on the agent — the forcing function lives in the scoring formula and reads existing employment fields.
+
 ### Agent generation (migration arrivals)
 
 At v0, new geckos enter the sim only via macro-driven migration (per 0010). Each arrival is created at a macro tick boundary with:
@@ -276,6 +309,22 @@ At v0, new geckos enter the sim only via macro-driven migration (per 0010). Each
 
 When reproduction lands post-v0, in-sim births grow a parallel pipeline that initializes from parental state instead.
 
+### Memory eviction
+
+The per-agent memory ring is capped at 500 entries to support story-emergence over multi-year agent lifetimes (per 0010 / 0005). When the ring fills, eviction picks the entry with the lowest `eviction_score`:
+
+```
+eviction_score(memory) = importance × recency_factor(memory.tick, current_tick)
+```
+
+`importance` is set at memory creation by the emitting `Effect::MemoryGenerate`; `recency_factor` decays slowly so old-but-important memories survive (the formative-event case). The exact decay curve is content/balancing — defer to first balancing pass.
+
+### Inventory stacking
+
+Items with `metadata: None` may stack within a single `InventorySlot` (`count > 1`). Items with `metadata: Some(...)` always occupy their own slot with `count = 1` — provenance (e.g. "stolen from Alice on tick 4321") is per-item, not per-stack.
+
+Three generic apples = one slot, count 3. Three phones stolen from three different victims = three slots. Three apples gifted by the same friend on the same tick = could collapse into one slot if the metadata is identical, but implementations may also keep them separate; either is acceptable.
+
 ### Authoring format
 
 - **Smart-object catalog and advertisements:** **RON** files loaded at startup. Rust-native, enums serialize cleanly, easy to edit by hand. Hot reload deferred.
@@ -284,7 +333,7 @@ When reproduction lands post-v0, in-sim births grow a parallel pipeline that ini
 
 ## Memory budget
 
-Per-agent worst case ~17 KB (memory ring + relationships + transactions dominate). 1000 agents ≈ 17 MB. Comfortable.
+Per-agent worst case ~50 KB (memory ring at 500 entries dominates; relationships and transactions also material). 1000 agents ≈ 50 MB. Comfortable.
 
 ## Consequences
 

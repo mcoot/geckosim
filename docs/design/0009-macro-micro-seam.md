@@ -98,6 +98,8 @@ Intentionally tight. Each variable comes with a cost: somewhere, agent scoring o
 
 ## Macro tick — order of operations
 
+The macro tick runs as the **first** thing on tick numbers divisible by 60 (60, 120, 180, …) — before any micro processing for that tick. Snapshots taken at these boundaries therefore reflect post-macro state (per 0008).
+
 1. Recompute derived aggregates from current micro snapshot.
 2. Read promoted events newer than the macro layer's cursor; update simulated state accordingly; advance the cursor.
 3. Advance simulated dynamics (weather model step, supply/demand pricing step, ongoing-event progression).
