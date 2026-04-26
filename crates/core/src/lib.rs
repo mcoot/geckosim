@@ -1,7 +1,4 @@
-//! Gecko-sim core: schema types and (later) the ECS-based simulation engine.
-//!
-//! At this scaffold pass, only the v0 schema from ADR 0011 is implemented.
-//! The live `Sim` API, ECS components, and systems land in later passes.
+//! Gecko-sim core: schema types and the ECS-based simulation engine.
 
 pub mod agent;
 pub mod decision;
@@ -11,6 +8,7 @@ pub mod macro_;
 pub mod object;
 pub mod rng;
 pub mod save;
+pub mod sim;
 pub mod systems;
 pub mod time;
 pub mod world;
@@ -22,5 +20,6 @@ pub use ids::{
     PromotedEventId,
 };
 pub use rng::PrngState;
+pub use sim::{ContentBundle, Sim, TickReport};
 pub use time::Tick;
 pub use world::{Color, Vec2};

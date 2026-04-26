@@ -4,7 +4,7 @@
 use gecko_sim_core::agent::{Mood, Needs, Personality};
 use gecko_sim_core::ids::{AgentId, OwnerRef};
 use gecko_sim_core::object::{Predicate, SmartObject};
-use gecko_sim_core::{Color, PrngState, Tick, Vec2};
+use gecko_sim_core::{Color, ContentBundle, PrngState, Sim, Tick, TickReport, Vec2};
 
 #[test]
 fn ids_construct_and_round_trip() {
@@ -22,12 +22,19 @@ fn primitives_construct() {
 
 #[test]
 fn schema_types_are_reachable() {
-    // We only need to name the types — instantiation requires populating
-    // ~30 fields, which is the live-sim pass's job, not the scaffold's.
     let _ = std::mem::size_of::<Needs>();
     let _ = std::mem::size_of::<Personality>();
     let _ = std::mem::size_of::<Mood>();
     let _ = std::mem::size_of::<SmartObject>();
     let _ = std::mem::size_of::<Predicate>();
     let _ = std::mem::size_of::<OwnerRef>();
+}
+
+#[test]
+#[expect(clippy::default_constructed_unit_structs, reason = "ContentBundle is a unit struct placeholder in this pass")]
+fn sim_ticks() {
+    let mut sim = Sim::new(0, ContentBundle::default());
+    assert_eq!(sim.current_tick(), 0);
+    let _: TickReport = sim.tick();
+    assert_eq!(sim.current_tick(), 1);
 }
