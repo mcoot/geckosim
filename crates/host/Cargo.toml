@@ -5,7 +5,15 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
-description = "Gecko-sim host: native binary that runs the sim and (later) serves WebSocket clients."
+description = "Gecko-sim host: native binary that runs the sim and serves the WebSocket transport."
+
+[lib]
+name = "gecko_sim_host"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gecko-sim-host"
+path = "src/main.rs"
 
 [dependencies]
 gecko-sim-core.workspace = true
@@ -14,6 +22,15 @@ gecko-sim-protocol.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 anyhow.workspace = true
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+futures-util.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tokio-tungstenite.workspace = true
+futures-util.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true
