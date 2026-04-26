@@ -11,6 +11,7 @@ repository = "https://github.com/jspearritt/geckosim"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 thiserror = "2"
 bevy_ecs = "0.16"
 tracing = "0.1"
@@ -21,6 +22,9 @@ rand_pcg = { version = "0.9", features = ["serde"] }
 ron = "0.10"
 anyhow = "1"
 bitflags = { version = "2", features = ["serde"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync", "time", "signal"] }
+tokio-tungstenite = "0.24"
+futures-util = "0.3"
 
 gecko-sim-core = { path = "crates/core" }
 gecko-sim-content = { path = "crates/content" }
