@@ -81,8 +81,10 @@ pub enum Need {
     Comfort,
 }
 
-/// All six need values, each in `[0, 1]`. Per ADR 0011.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+/// All six need values, each in `[0, 1]`. Per ADR 0011. Doubles as the
+/// ECS component for needs (lazy sharding — schema and component share a
+/// type until a future pass needs them to diverge).
+#[derive(bevy_ecs::component::Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Needs {
     pub hunger: f32,
     pub sleep: f32,
@@ -90,6 +92,21 @@ pub struct Needs {
     pub hygiene: f32,
     pub fun: f32,
     pub comfort: f32,
+}
+
+impl Needs {
+    /// All needs at maximum (`1.0`). Convenience for spawning fresh agents.
+    #[must_use]
+    pub fn full() -> Self {
+        Self {
+            hunger: 1.0,
+            sleep: 1.0,
+            social: 1.0,
+            hygiene: 1.0,
+            fun: 1.0,
+            comfort: 1.0,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -371,4 +388,30 @@ pub enum TargetSpec {
     OwnerOfObject,
     OtherAgent { id: AgentId },
     NearbyAgent { selector: NearbySelector },
+}
+
+#[cfg(test)]
+#[allow(clippy::float_cmp)] // exact-constant comparisons against `1.0` literals
+mod needs_component_tests {
+    use super::Needs;
+    use bevy_ecs::world::World;
+
+    #[test]
+    fn needs_full_is_all_ones() {
+        let n = Needs::full();
+        assert_eq!(n.hunger, 1.0);
+        assert_eq!(n.sleep, 1.0);
+        assert_eq!(n.social, 1.0);
+        assert_eq!(n.hygiene, 1.0);
+        assert_eq!(n.fun, 1.0);
+        assert_eq!(n.comfort, 1.0);
+    }
+
+    #[test]
+    fn needs_can_be_inserted_as_component() {
+        let mut world = World::new();
+        let entity = world.spawn(Needs::full()).id();
+        let needs = world.get::<Needs>(entity).expect("Needs component present");
+        assert_eq!(needs.hunger, 1.0);
+    }
 }
