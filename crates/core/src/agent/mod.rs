@@ -362,9 +362,12 @@ pub enum NearbySelector {
 }
 
 /// Reference target for action effects and predicates (per ADR 0011).
+///
+/// `Self_` carries a trailing underscore to dodge the `self` keyword while
+/// keeping ADR 0011's vocabulary verbatim.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TargetSpec {
-    SelfAgent,
+    Self_,
     OwnerOfObject,
     OtherAgent { id: AgentId },
     NearbyAgent { selector: NearbySelector },

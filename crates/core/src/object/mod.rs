@@ -18,9 +18,14 @@ use crate::world::Vec2;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct MeshId(pub u32);
 
+/// Content-defined string key into a smart object's `StateMap`. ADR 0011
+/// vocabulary; aliased to `String` at v0 with room to harden into an interned
+/// or typed key later.
+pub type StateKey = String;
+
 /// Type-specific instance state. Keys are content-defined string identifiers;
 /// values are typed.
-pub type StateMap = HashMap<String, StateValue>;
+pub type StateMap = HashMap<StateKey, StateValue>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum StateValue {
@@ -120,7 +125,7 @@ pub enum Predicate {
     AgentSkill(Skill, Op, f32),
     AgentInventory(ItemType, Op, u16),
     AgentRelationship(TargetSpec, RelField, Op, f32),
-    ObjectState(String, Op, StateValue),
+    ObjectState(StateKey, Op, StateValue),
     MacroState(MacroVar, Op, MacroValue),
     Spatial(SpatialReq),
     TimeOfDay(TickRange),

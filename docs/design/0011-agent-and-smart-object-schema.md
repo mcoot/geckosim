@@ -286,6 +286,26 @@ When an action is interrupted (need threshold crossed, macro-precondition failed
 
 Rule of thumb: continuous effects scale; discrete events don't. Advertisements that need different semantics (e.g. "rob the bank" shouldn't pay 60% on interruption) should split into multiple shorter actions; a per-effect override can land later if needed.
 
+### `TargetSpec` resolution
+
+A `TargetSpec` resolves to **zero or one** `AgentId` per evaluation, in the context of the acting agent and (where applicable) the smart object the action targets:
+
+| Variant                     | Resolves to                                                      |
+| --------------------------- | ---------------------------------------------------------------- |
+| `Self_`                     | the acting agent                                                 |
+| `OwnerOfObject`             | the smart object's `owner` if it is an `AgentId`; otherwise none (`Household`/`Business` owners do not resolve to an agent) |
+| `OtherAgent { id }`         | the named agent (consumers may filter by `alive` / colocation)   |
+| `NearbyAgent { selector }`  | at most one agent picked by the selector (`Random`/`Closest`/`HighestAffinity`/…); none if no candidates |
+
+Consumers map the resolved 0-or-1 result into their own shape:
+
+- `Predicate::AgentRelationship` and `Effect::RelationshipDelta`: a `None` resolution makes the predicate false / the effect a no-op.
+- `Effect::MemoryGenerate.participants: TargetSpec` lifts into `MemoryEntry.participants: BoundedVec<AgentId, 4>` as a 0- or 1-element vec.
+
+`MemoryEntry.participants` is bounded at 4 because some memory creation paths beyond `Effect::MemoryGenerate` will record genuine multi-agent participation (e.g. group-event memories, post-v0 multi-target effects). At v0, the only memory-creation path is `MemoryGenerate`, so the participants list always holds 0 or 1 entries — but the cap is sized for the multi-participant case ahead of time.
+
+Multi-target resolution (e.g. "everyone in this leaf area") is deferred. When it lands, the natural extension is either a new `TargetSpec` variant with a list-returning selector or a `Vec<TargetSpec>` field on the consuming effect.
+
 ### Promoted-event emission
 
 `Effect::PromotedEvent` allocates a `PromotedEventId` from the sim's monotonic counter and synchronously appends to the promoted-event ring (per 0009). Emission happens during effect application at end-tick — same atomicity as other effects, so promoted events are suppressed when the action is interrupted (they're in the all-or-nothing bucket above).
