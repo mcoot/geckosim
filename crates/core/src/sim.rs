@@ -49,7 +49,7 @@ impl Sim {
 
     /// Advance the simulation by one tick (one sim-minute per ADR 0008).
     pub fn tick(&mut self) -> TickReport {
-        // Systems land here. Task 5 wires `systems::needs::decay`.
+        crate::systems::needs::decay(&mut self.world);
         self.tick += 1;
         TickReport
     }

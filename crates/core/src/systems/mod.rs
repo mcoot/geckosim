@@ -1,7 +1,7 @@
 //! ECS systems per ADR 0010 / 0012.
 //!
-//! Each v0 system from ADR 0010 will land as its own submodule:
-//!   - `needs`         (1) need decay
+//! Each v0 system from ADR 0010 lands as its own submodule:
+//!   - `needs`         (1) need decay      ← landed
 //!   - `personality`   (2) personality (read-only)
 //!   - `mood`          (3) mood update
 //!   - `memory`        (4) memory ring & decay
@@ -13,6 +13,6 @@
 //!   - `health`        (10) condition + vitality
 //!   - `crime`         (11) crime + consequences
 //!
-//! Systems are added in a later pass alongside the live `Sim` API.
+//! Other systems join in later passes alongside additional ECS components.
 
-// Empty — see ADR 0010 for the v0 system list.
+pub mod needs;
