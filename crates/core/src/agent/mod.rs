@@ -19,6 +19,17 @@ use crate::world::{Color, Vec2};
 // Identity / appearance
 // ---------------------------------------------------------------------------
 
+/// ECS component holding stable identity for an agent entity.
+///
+/// Lazy-sharded projection of `Gecko`'s identity fields (`id`, `name`).
+/// The `Gecko` schema struct keeps its inline fields; `Identity` is
+/// the runtime ECS view used by systems and snapshots.
+#[derive(bevy_ecs::component::Component, Debug, Clone)]
+pub struct Identity {
+    pub id: AgentId,
+    pub name: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Gender {
     Male,
@@ -413,5 +424,29 @@ mod needs_component_tests {
         let entity = world.spawn(Needs::full()).id();
         let needs = world.get::<Needs>(entity).expect("Needs component present");
         assert_eq!(needs.hunger, 1.0);
+    }
+}
+
+#[cfg(test)]
+mod identity_component_tests {
+    use super::{Identity, Needs};
+    use crate::ids::AgentId;
+    use bevy_ecs::world::World;
+
+    #[test]
+    fn identity_can_be_inserted_alongside_needs() {
+        let mut world = World::new();
+        let entity = world
+            .spawn((
+                Identity {
+                    id: AgentId::new(7),
+                    name: "Alice".to_string(),
+                },
+                Needs::full(),
+            ))
+            .id();
+        let id = world.get::<Identity>(entity).expect("Identity component present");
+        assert_eq!(id.id, AgentId::new(7));
+        assert_eq!(id.name, "Alice");
     }
 }
