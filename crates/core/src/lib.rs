@@ -9,6 +9,7 @@ pub mod object;
 pub mod rng;
 pub mod save;
 pub mod sim;
+pub mod snapshot;
 pub mod systems;
 pub mod time;
 pub mod world;
@@ -21,5 +22,6 @@ pub use ids::{
 };
 pub use rng::PrngState;
 pub use sim::{ContentBundle, Sim, TickReport};
+pub use snapshot::{AgentSnapshot, Snapshot};
 pub use time::Tick;
 pub use world::{Color, Vec2};

@@ -6,7 +6,10 @@
 
 use bevy_ecs::world::World;
 
+use crate::agent::{Identity, Needs};
+use crate::ids::AgentId;
 use crate::rng::PrngState;
+use crate::snapshot::{AgentSnapshot, Snapshot};
 
 /// Catalog data passed into `Sim::new`. Empty placeholder until RON
 /// content loading lands; lives in `core` because ADR 0012 fixes the
@@ -22,16 +25,12 @@ pub struct TickReport;
 
 /// The live simulation. Owns its `bevy_ecs::World` and the canonical clock.
 pub struct Sim {
-    // World is wired in Task 4 (snapshot) / Task 5 (needs-decay system).
-    #[expect(dead_code, reason = "wired in Task 4 (Sim::snapshot, spawn_test_agent)")]
     world: World,
     tick: u64,
     // Stored for determinism; needs-decay does not consume randomness, but
     // future systems will. The seed is captured here at construction time.
     #[expect(dead_code, reason = "consumed by first RNG-using system in a later pass")]
     rng: PrngState,
-    // Used by `spawn_test_agent` in Task 4.
-    #[expect(dead_code, reason = "used by spawn_test_agent in Task 4")]
     next_agent_id: u64,
 }
 
@@ -59,5 +58,47 @@ impl Sim {
     #[must_use]
     pub fn current_tick(&self) -> u64 {
         self.tick
+    }
+
+    /// Spawn a fresh agent at full needs with a monotonically allocated
+    /// `AgentId`.
+    ///
+    /// **Note:** this is a placeholder for content-driven agent generation.
+    /// It will be replaced when RON content loading lands.
+    pub fn spawn_test_agent(&mut self, name: &str) -> AgentId {
+        let id = AgentId::new(self.next_agent_id);
+        self.next_agent_id += 1;
+        self.world.spawn((
+            Identity {
+                id,
+                name: name.to_string(),
+            },
+            Needs::full(),
+        ));
+        id
+    }
+
+    /// Capture the full sim state at the current tick. Agents are sorted
+    /// by `AgentId` ascending for determinism.
+    #[must_use]
+    pub fn snapshot(&self) -> Snapshot {
+        let mut agents: Vec<AgentSnapshot> = self
+            .world
+            .iter_entities()
+            .filter_map(|entity_ref| {
+                let identity = entity_ref.get::<Identity>()?;
+                let needs = entity_ref.get::<Needs>()?;
+                Some(AgentSnapshot {
+                    id: identity.id,
+                    name: identity.name.clone(),
+                    needs: *needs,
+                })
+            })
+            .collect();
+        agents.sort_by_key(|a| a.id);
+        Snapshot {
+            tick: self.tick,
+            agents,
+        }
     }
 }
