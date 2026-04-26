@@ -57,6 +57,7 @@ The renderer never receives full sim state — needs vectors, memories, relation
 - At 1× speed (1 sim-tick / sec), most samples carry trivial deltas — cheap.
 - At 64× (64 sim-ticks / sec), each sample spans ~2 sim ticks; the delta reflects net change.
 - Renderer interpolates between consecutive samples for visual smoothness (per 0008). Interpolation operates on samples, not raw sim ticks.
+- **Known limitation:** at high speeds where multiple sim ticks span a single sample, linear interpolation between samples may produce visible discontinuities (e.g. an agent appearing to teleport across a wall if it changed leaf area within the gap). Acceptable for v0 — at slower speeds the gaps shrink, and high-speed observation is for time-skip rather than scrutiny.
 
 ### Player input
 
@@ -107,7 +108,7 @@ PlayerInput =
 - **Area-of-interest culling.** Server sends all entities regardless of camera. Add later if bandwidth bites.
 - **Live content reload** (mid-run RON edits) — restart-required for v0.
 - **Smart resync from delta cache** — fresh `Init` on every reconnect.
-- **Multi-client / spectator mode** — single-client only.
+- **Multi-client / spectator mode** — single-client only. When this lands, `PlayerInput` will need a sender field (global-scope inputs like `RequestSave` / `SetPolicy` currently have no notion of who issued them).
 - **Compression** — revisit alongside encoding swap.
 - **Auth, TLS, rate limiting** — single-user local sim.
 - **Inspection messages** (request full sim-side state for a specific agent) — add when the inspection UI demands it.

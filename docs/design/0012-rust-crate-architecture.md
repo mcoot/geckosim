@@ -46,7 +46,7 @@ gecko-sim/                        (workspace root)
 ```
 core/src/
 ├── lib.rs           pub Sim + public API
-├── world/           spatial graph (district/building/floor/room/zone), pathfinding
+├── world/           spatial graph (district/building/floor/room/zone), hierarchical A* pathfinding (per 0007)
 ├── agent/           Gecko ECS components and helpers
 ├── object/          SmartObject components + ObjectType catalog handle
 ├── decision/        utility AI scoring, action commitment, interrupts

@@ -71,3 +71,4 @@ Each system is small. The product is what's interesting.
 - The schema doc (next) defines concrete data shapes for per-agent state across these 11 systems plus inventory.
 - Each system needs at minimum: per-tick or event-driven update logic, integration with the decision-scoring loop (0004), and coupling specifications to other systems.
 - v0 will explicitly *not* try to be deep in any one system. If a system feels thin individually, that's correct — depth comes later.
+- All per-system state is part of the deterministic snapshot at tick boundaries (per 0008). System update logic must be tick-clean — no mid-tick mutation visible across systems — and all RNG draws come from seeded sub-streams.

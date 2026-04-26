@@ -25,7 +25,7 @@
 - **Pull (default).** Macro state is a cheap, read-only context (`MacroContext`). Agents and smart objects reference macro variables as inputs to scoring. Keeps the seam thin and avoids propagation steps.
 - **Push (interrupts only).** Forced actions (evacuate, eviction, mandatory shift) are injected as agent interrupts — same mechanism as need-threshold interrupts from 0004; the macro layer is just another source.
 - **Smart-object macro gating.** Smart objects evaluate conditions against macro state at advertising time (e.g. "open if curfew not in effect"). This is how policy and events reshape the available action space without modifying agent code.
-- **Macro-monitored re-check.** Every `MacroState` predicate in an advertisement is implicitly macro-monitored: at each macro tick boundary, the sim re-evaluates the macro predicates of every in-flight action. If any now fails, the action is interrupted with `InterruptSource::MacroPreconditionFailed` (per 0011). Non-macro predicates are not re-checked — agents commit to their own state changes. Cheap because re-check is only macro predicates and only once per sim-hour.
+- **Macro-monitored re-check.** Every `MacroState` predicate in an advertisement is implicitly macro-monitored: at each macro tick boundary, the sim re-evaluates the macro predicates of every in-flight action. If any now fails, the action is interrupted with `InterruptSource::MacroPreconditionFailed` (per 0011). Non-macro predicates are not re-checked — agents commit to their own state changes. Cheap because re-check is only macro predicates and only once per sim-hour. Compound macro conditions ("curfew AND district = X") are expressed as multiple `Predicate::MacroState` entries on the same advertisement — preconditions are conjunctive, so listing several effectively ANDs them.
 
 ### Micro → macro: aggregation + promoted events
 
@@ -118,6 +118,6 @@ Revisit ordering if cycles appear.
 
 ## Open questions
 
-- **Per-agent perception.** Deferred. Add only if "all agents know everything" produces noticeably wrong behavior.
+- **Per-agent perception.** Deferred. Add only if "all agents know everything" produces noticeably wrong behavior. Note: introducing a perception layer later changes the macro-read contract and will invalidate replay of pre-perception saves — perception state must itself be deterministic from existing state, and saves will need a schema-version bump.
 - **Pricing model granularity.** Which goods/services are tracked? At minimum housing, food, labor — finalized in the systems-inventory doc.
 - **Player intervention UX.** How players actually edit policy (UI) is out of scope here; the contract above only requires policy live in macro state.
