@@ -15,9 +15,13 @@ bitflags.workspace = true
 glam.workspace = true
 rand.workspace = true
 rand_pcg.workspace = true
+ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
 ron.workspace = true
+
+[features]
+export-ts = ["dep:ts-rs"]
 
 [lints]
 workspace = true

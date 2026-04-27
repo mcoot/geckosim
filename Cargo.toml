@@ -26,6 +26,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync",
 tokio-tungstenite = "0.24"
 futures-util = "0.3"
 tempfile = "3"
+ts-rs = { version = "10", features = ["serde-compat"] }
 
 gecko-sim-core = { path = "crates/core" }
 gecko-sim-content = { path = "crates/content" }

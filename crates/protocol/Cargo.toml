@@ -10,9 +10,13 @@ description = "Gecko-sim protocol: wire types shared with the frontend (later)."
 [dependencies]
 gecko-sim-core.workspace = true
 serde.workspace = true
+ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde_json.workspace = true
+
+[features]
+export-ts = ["dep:ts-rs", "gecko-sim-core/export-ts"]
 
 [lints]
 workspace = true
