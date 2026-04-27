@@ -1,4 +1,5 @@
-//! Live `Sim` driver: wraps a `bevy_ecs::World` and advances tick state.
+//! Live `Sim` driver: wraps a `bevy_ecs::World` and advances tick state
+//! via a `bevy_ecs::schedule::Schedule`.
 //!
 //! Honours the public API contract from ADR 0012 partially:
 //!   - `new`, `tick`, `current_tick`, `snapshot`.
@@ -6,6 +7,7 @@
 
 use std::collections::HashMap;
 
+use bevy_ecs::schedule::Schedule;
 use bevy_ecs::world::World;
 
 use crate::agent::{Accessory, AccessoryCatalog, Identity, Needs};
@@ -13,6 +15,7 @@ use crate::ids::{AccessoryId, AgentId, ObjectTypeId};
 use crate::object::{ObjectCatalog, ObjectType};
 use crate::rng::PrngState;
 use crate::snapshot::{AgentSnapshot, Snapshot};
+use crate::systems;
 
 /// Catalog data passed into `Sim::new`. Loaded from RON files by the
 /// `gecko-sim-content` crate; populated maps after a real load, empty maps
@@ -29,9 +32,11 @@ pub struct ContentBundle {
 #[derive(Debug, Clone, Default)]
 pub struct TickReport;
 
-/// The live simulation. Owns its `bevy_ecs::World` and the canonical clock.
+/// The live simulation. Owns its `bevy_ecs::World`, a `Schedule` of
+/// per-tick systems, and the canonical clock.
 pub struct Sim {
     world: World,
+    schedule: Schedule,
     tick: u64,
     // Stored for determinism; needs-decay does not consume randomness, but
     // future systems will. The seed is captured here at construction time.
@@ -42,8 +47,8 @@ pub struct Sim {
 
 impl Sim {
     /// Construct a fresh sim with the given world seed and content bundle.
-    /// The bundle is decomposed into split `ObjectCatalog` and
-    /// `AccessoryCatalog` resources on the way into the ECS world.
+    /// Builds the per-tick `Schedule` once with all v0 systems in their
+    /// canonical order; `tick` runs the schedule unchanged each call.
     #[must_use]
     pub fn new(seed: u64, content: ContentBundle) -> Self {
         let mut world = World::new();
@@ -53,8 +58,13 @@ impl Sim {
         world.insert_resource(AccessoryCatalog {
             by_id: content.accessories,
         });
+
+        let mut schedule = Schedule::default();
+        schedule.add_systems(systems::needs::decay);
+
         Self {
             world,
+            schedule,
             tick: 0,
             rng: PrngState::from_seed(seed),
             next_agent_id: 0,
@@ -62,8 +72,9 @@ impl Sim {
     }
 
     /// Advance the simulation by one tick (one sim-minute per ADR 0008).
+    /// Runs the per-tick `Schedule` against the world.
     pub fn tick(&mut self) -> TickReport {
-        crate::systems::needs::decay(&mut self.world);
+        self.schedule.run(&mut self.world);
         self.tick += 1;
         TickReport
     }

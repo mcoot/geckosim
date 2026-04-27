@@ -5,7 +5,7 @@
 //! the responsibility of consumer-action systems landing in later
 //! passes; this system never raises a need.
 
-use bevy_ecs::world::World;
+use bevy_ecs::system::Query;
 
 use crate::agent::Needs;
 
@@ -23,14 +23,13 @@ pub const COMFORT_DECAY_PER_TICK: f32 = 1.0 / 360.0; // empties in  6 sim-hours
 ///
 /// Saturating subtraction at zero. No upper clamp — replenishment systems
 /// are responsible for keeping values in `[0, 1]` from above.
-pub(crate) fn decay(world: &mut World) {
-    let mut query = world.query::<&mut Needs>();
-    for mut needs in query.iter_mut(world) {
-        needs.hunger = (needs.hunger - HUNGER_DECAY_PER_TICK).max(0.0);
-        needs.sleep = (needs.sleep - SLEEP_DECAY_PER_TICK).max(0.0);
-        needs.social = (needs.social - SOCIAL_DECAY_PER_TICK).max(0.0);
-        needs.hygiene = (needs.hygiene - HYGIENE_DECAY_PER_TICK).max(0.0);
-        needs.fun = (needs.fun - FUN_DECAY_PER_TICK).max(0.0);
-        needs.comfort = (needs.comfort - COMFORT_DECAY_PER_TICK).max(0.0);
+pub(crate) fn decay(mut needs: Query<&mut Needs>) {
+    for mut n in &mut needs {
+        n.hunger = (n.hunger - HUNGER_DECAY_PER_TICK).max(0.0);
+        n.sleep = (n.sleep - SLEEP_DECAY_PER_TICK).max(0.0);
+        n.social = (n.social - SOCIAL_DECAY_PER_TICK).max(0.0);
+        n.hygiene = (n.hygiene - HYGIENE_DECAY_PER_TICK).max(0.0);
+        n.fun = (n.fun - FUN_DECAY_PER_TICK).max(0.0);
+        n.comfort = (n.comfort - COMFORT_DECAY_PER_TICK).max(0.0);
     }
 }
