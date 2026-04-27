@@ -20,6 +20,8 @@ pub use ids::{
     HouseholdId, HousingId, LeafAreaId, MemoryEntryId, ObjectId, ObjectTypeId, OwnerRef,
     PromotedEventId,
 };
+pub use agent::{Accessory, AccessoryCatalog, AccessorySlot};
+pub use object::ObjectCatalog;
 pub use rng::PrngState;
 pub use sim::{ContentBundle, Sim, TickReport};
 pub use snapshot::{AgentSnapshot, Snapshot};

@@ -204,3 +204,14 @@ pub struct ScoreTemplate {
     pub personality_weights: Personality,
     pub situational_modifiers: Vec<SituationalModifier>,
 }
+
+// ---------------------------------------------------------------------------
+// Object catalog resource
+// ---------------------------------------------------------------------------
+
+/// `bevy_ecs` resource holding the loaded object-type catalog. Keyed by
+/// `ObjectTypeId`. Inserted by `Sim::new`.
+#[derive(bevy_ecs::prelude::Resource, Debug, Clone, Default)]
+pub struct ObjectCatalog {
+    pub by_id: HashMap<ObjectTypeId, ObjectType>,
+}

@@ -77,6 +77,37 @@ pub struct Appearance {
 }
 
 // ---------------------------------------------------------------------------
+// Accessory catalog (aesthetic-only at v0 per ADR 0011)
+// ---------------------------------------------------------------------------
+
+/// Where on a gecko an `Accessory` attaches. Mirrors the four-slot cap on
+/// `Appearance.accessories`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum AccessorySlot {
+    Head,
+    Neck,
+    Body,
+    Tail,
+}
+
+/// Static accessory catalog entry. Aesthetic-only at v0 — no scoring
+/// effects, no economic value, no theft. The `mesh_id` is a renderer hint.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Accessory {
+    pub id: AccessoryId,
+    pub display_name: String,
+    pub mesh_id: crate::object::MeshId,
+    pub slot: AccessorySlot,
+}
+
+/// `bevy_ecs` resource holding the loaded accessory catalog. Keyed by
+/// `AccessoryId`. Inserted by `Sim::new`.
+#[derive(bevy_ecs::prelude::Resource, Debug, Clone, Default)]
+pub struct AccessoryCatalog {
+    pub by_id: HashMap<AccessoryId, Accessory>,
+}
+
+// ---------------------------------------------------------------------------
 // (1) Needs
 // ---------------------------------------------------------------------------
 

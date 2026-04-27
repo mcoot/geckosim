@@ -480,6 +480,7 @@ dependencies = [
  "glam 0.30.10",
  "rand 0.9.4",
  "rand_pcg",
+ "ron",
  "serde",
  "thiserror 2.0.18",
 ]
