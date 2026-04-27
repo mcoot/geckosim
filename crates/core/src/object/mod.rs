@@ -44,7 +44,10 @@ pub struct ObjectType {
     pub advertisements: Vec<Advertisement>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Per-instance smart-object state (per ADR 0011). Doubles as the ECS
+/// component on smart-object entities (lazy-sharding — schema and
+/// component share a type until a future pass needs them to diverge).
+#[derive(bevy_ecs::component::Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SmartObject {
     pub id: ObjectId,
     pub type_id: ObjectTypeId,
