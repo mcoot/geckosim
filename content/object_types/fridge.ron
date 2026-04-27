@@ -1,0 +1,31 @@
+ObjectType(
+    id: ObjectTypeId(1),
+    display_name: "Fridge",
+    mesh_id: MeshId(1),
+    default_state: {
+        "stocked": Bool(true),
+    },
+    advertisements: [
+        Advertisement(
+            id: AdvertisementId(1),
+            display_name: "Eat snack",
+            preconditions: [
+                ObjectState("stocked", Eq, Bool(true)),
+                AgentNeed(Hunger, Lt, 0.6),
+            ],
+            effects: [
+                AgentNeedDelta(Hunger, 0.4),
+            ],
+            duration_ticks: 10,
+            interrupt_class: NeedsThresholdOnly,
+            score_template: ScoreTemplate(
+                need_weights: [(Hunger, 1.0)],
+                personality_weights: Personality(
+                    openness: 0.0, conscientiousness: 0.0,
+                    extraversion: 0.0, agreeableness: 0.0, neuroticism: 0.0,
+                ),
+                situational_modifiers: [],
+            ),
+        ),
+    ],
+)

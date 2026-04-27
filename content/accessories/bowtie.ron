@@ -1,0 +1,6 @@
+Accessory(
+    id: AccessoryId(2),
+    display_name: "Bow tie",
+    mesh_id: MeshId(102),
+    slot: Neck,
+)

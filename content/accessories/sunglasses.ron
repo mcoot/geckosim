@@ -1,0 +1,6 @@
+Accessory(
+    id: AccessoryId(1),
+    display_name: "Sunglasses",
+    mesh_id: MeshId(101),
+    slot: Head,
+)
