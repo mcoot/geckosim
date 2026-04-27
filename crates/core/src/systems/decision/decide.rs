@@ -32,7 +32,6 @@ const NOISE_SCALE: f32 = 0.1;
 
 /// Run the decide phase: for each agent with no current action, choose
 /// the next action via the v0 utility-AI scorer.
-#[allow(dead_code, reason = "registered in Sim::new in Task 6")]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "bevy_ecs SystemParam: Res must be passed by value"

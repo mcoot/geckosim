@@ -20,6 +20,7 @@ ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
 ron.workspace = true
+gecko-sim-content.workspace = true
 
 [features]
 export-ts = ["dep:ts-rs"]

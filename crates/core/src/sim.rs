@@ -12,12 +12,13 @@ use bevy_ecs::world::World;
 
 use crate::agent::{Accessory, AccessoryCatalog, Identity, Mood, Needs, Personality};
 use crate::decision::{CurrentAction, RecentActionsRing};
-use crate::ids::{AccessoryId, AgentId, ObjectTypeId};
-use crate::object::{ObjectCatalog, ObjectType};
+use crate::ids::{AccessoryId, AgentId, LeafAreaId, ObjectId, ObjectTypeId};
+use crate::object::{ObjectCatalog, ObjectType, SmartObject};
 use crate::rng::PrngState;
 use crate::snapshot::{AgentSnapshot, Snapshot};
 use crate::systems;
 use crate::time::CurrentTick;
+use crate::world::Vec2;
 
 /// Catalog data passed into `Sim::new`. Loaded from RON files by the
 /// `gecko-sim-content` crate; populated maps after a real load, empty maps
@@ -47,7 +48,6 @@ pub struct Sim {
     schedule: Schedule,
     tick: u64,
     next_agent_id: u64,
-    #[expect(dead_code, reason = "consumed by spawn_test_object in a later pass")]
     next_object_id: u64,
 }
 
@@ -68,7 +68,15 @@ impl Sim {
         world.insert_resource(CurrentTick(0));
 
         let mut schedule = Schedule::default();
-        schedule.add_systems((systems::needs::decay, systems::mood::update).chain());
+        schedule.add_systems(
+            (
+                systems::needs::decay,
+                systems::mood::update,
+                systems::decision::execute::execute,
+                systems::decision::decide::decide,
+            )
+                .chain(),
+        );
 
         Self {
             world,
@@ -140,6 +148,62 @@ impl Sim {
             RecentActionsRing::default(),
         ));
         id
+    }
+
+    /// Spawn a smart-object instance of the given catalog type. Test-only
+    /// entry point until content-driven instance spawning lands.
+    /// Reads the type's `default_state` from the catalog and stamps it on
+    /// the new instance. Returns the freshly allocated `ObjectId`.
+    ///
+    /// # Panics
+    /// Panics if `type_id` is not in the loaded `ObjectCatalog`.
+    pub fn spawn_test_object(
+        &mut self,
+        type_id: ObjectTypeId,
+        location: LeafAreaId,
+        position: Vec2,
+    ) -> ObjectId {
+        let id = ObjectId::new(self.next_object_id);
+        self.next_object_id += 1;
+        let default_state = self
+            .world
+            .resource::<ObjectCatalog>()
+            .by_id
+            .get(&type_id)
+            .unwrap_or_else(|| panic!("ObjectTypeId {type_id:?} not in catalog"))
+            .default_state
+            .clone();
+        self.world.spawn(SmartObject {
+            id,
+            type_id,
+            location,
+            position,
+            owner: None,
+            state: default_state,
+        });
+        id
+    }
+
+    /// Spawn one instance of every loaded `ObjectType`. Convenience for
+    /// the host's seed-instance spawn at startup. Iterates type IDs in
+    /// sorted order for deterministic `ObjectId` allocation.
+    pub fn spawn_one_of_each_object_type(
+        &mut self,
+        location: LeafAreaId,
+        position: Vec2,
+    ) -> Vec<ObjectId> {
+        let mut type_ids: Vec<ObjectTypeId> = self
+            .world
+            .resource::<ObjectCatalog>()
+            .by_id
+            .keys()
+            .copied()
+            .collect();
+        type_ids.sort();
+        type_ids
+            .into_iter()
+            .map(|t| self.spawn_test_object(t, location, position))
+            .collect()
     }
 
     /// Capture the full sim state at the current tick. Agents are sorted

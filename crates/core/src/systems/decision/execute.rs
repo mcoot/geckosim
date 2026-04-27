@@ -24,7 +24,6 @@ use crate::time::CurrentTick;
 /// For object-targeted actions: applies the ad's effects, pushes a
 /// `RecentActionEntry`, clears `CurrentAction`. For self-actions
 /// (`Idle`/`Wait`): clears `CurrentAction` only.
-#[allow(dead_code, reason = "registered in Sim::new in Task 6")]
 #[allow(
     clippy::needless_pass_by_value,
     reason = "bevy_ecs SystemParam: Res must be passed by value"

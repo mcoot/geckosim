@@ -478,6 +478,7 @@ version = "0.1.0"
 dependencies = [
  "bevy_ecs",
  "bitflags",
+ "gecko-sim-content",
  "glam 0.30.10",
  "rand 0.9.4",
  "rand_pcg",

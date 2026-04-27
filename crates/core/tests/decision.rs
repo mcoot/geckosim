@@ -1,0 +1,36 @@
+//! Integration test for the decision-runtime v0: agents pick + execute
+//! advertisements end-to-end through `Sim::tick`.
+
+mod common;
+
+use gecko_sim_core::agent::Needs;
+use gecko_sim_core::ids::LeafAreaId;
+use gecko_sim_core::{Sim, Vec2};
+
+#[test]
+fn agent_eats_from_fridge_when_hungry() {
+    let mut sim = Sim::new(0, common::seed_content_bundle());
+    sim.spawn_test_agent_with_needs(
+        "Hungry",
+        Needs {
+            hunger: 0.3,
+            ..Needs::full()
+        },
+    );
+    sim.spawn_one_of_each_object_type(LeafAreaId::DEFAULT, Vec2::ZERO);
+
+    // The fridge ad takes 10 ticks. The first tick decides; ticks 2-11
+    // execute; tick 11 completes (since started_tick=1 and duration=10
+    // means expected_end_tick=11). Run an extra few ticks for slack.
+    for _ in 0..15 {
+        sim.tick();
+    }
+
+    let snap = sim.snapshot();
+    let agent = &snap.agents[0];
+    assert!(
+        agent.needs.hunger > 0.6,
+        "hunger restored from 0.3 to {}",
+        agent.needs.hunger
+    );
+}
