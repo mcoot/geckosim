@@ -12,10 +12,6 @@ const TOL: f32 = 1e-5;
 
 #[test]
 #[expect(
-    clippy::default_constructed_unit_structs,
-    reason = "ContentBundle is a unit struct today but will gain fields when RON content loading lands; using ::default() preserves the call site"
-)]
-#[expect(
     clippy::cast_precision_loss,
     reason = "HUNGER_TICKS is a small u64 (480); the cast to f32 is exact"
 )]

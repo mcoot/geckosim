@@ -5,10 +5,6 @@ use tracing_subscriber::EnvFilter;
 
 const DEMO_SEED: u64 = 0xDEAD_BEEF;
 
-#[expect(
-    clippy::default_constructed_unit_structs,
-    reason = "ContentBundle is a unit struct placeholder until content loading lands"
-)]
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));

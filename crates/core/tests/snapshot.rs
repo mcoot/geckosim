@@ -8,10 +8,6 @@ use gecko_sim_core::{ContentBundle, Sim};
     clippy::float_cmp,
     reason = "literal 1.0 set in Needs::full() vs literal 1.0 in assertion is bit-exact"
 )]
-#[expect(
-    clippy::default_constructed_unit_structs,
-    reason = "ContentBundle is a unit struct today but will gain fields when RON content loading lands; using ::default() preserves the call site"
-)]
 fn snapshot_contains_spawned_agents_sorted_by_id() {
     let mut sim = Sim::new(0, ContentBundle::default());
     let alice = sim.spawn_test_agent("Alice");

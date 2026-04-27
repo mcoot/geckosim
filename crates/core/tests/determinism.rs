@@ -6,10 +6,6 @@
 
 use gecko_sim_core::{ContentBundle, Sim, Snapshot};
 
-#[expect(
-    clippy::default_constructed_unit_structs,
-    reason = "ContentBundle is a unit struct placeholder in this pass"
-)]
 fn run(seed: u64, ticks: u64) -> Snapshot {
     let mut sim = Sim::new(seed, ContentBundle::default());
     sim.spawn_test_agent("Alice");

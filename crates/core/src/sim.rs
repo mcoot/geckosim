@@ -1,21 +1,27 @@
 //! Live `Sim` driver: wraps a `bevy_ecs::World` and advances tick state.
 //!
 //! Honours the public API contract from ADR 0012 partially:
-//!   - `new`, `tick`, `current_tick`, `snapshot` (snapshot lands in Task 4).
-//!   - `delta_since`, `apply_input` deferred to the WS pass.
+//!   - `new`, `tick`, `current_tick`, `snapshot`.
+//!   - `delta_since`, `apply_input` deferred to a later pass.
+
+use std::collections::HashMap;
 
 use bevy_ecs::world::World;
 
-use crate::agent::{Identity, Needs};
-use crate::ids::AgentId;
+use crate::agent::{Accessory, AccessoryCatalog, Identity, Needs};
+use crate::ids::{AccessoryId, AgentId, ObjectTypeId};
+use crate::object::{ObjectCatalog, ObjectType};
 use crate::rng::PrngState;
 use crate::snapshot::{AgentSnapshot, Snapshot};
 
-/// Catalog data passed into `Sim::new`. Empty placeholder until RON
-/// content loading lands; lives in `core` because ADR 0012 fixes the
-/// dep direction at `core ← content`.
+/// Catalog data passed into `Sim::new`. Loaded from RON files by the
+/// `gecko-sim-content` crate; populated maps after a real load, empty maps
+/// after `ContentBundle::default()`.
 #[derive(Debug, Clone, Default)]
-pub struct ContentBundle;
+pub struct ContentBundle {
+    pub object_types: HashMap<ObjectTypeId, ObjectType>,
+    pub accessories: HashMap<AccessoryId, Accessory>,
+}
 
 /// Per-tick stats returned from `Sim::tick`. Empty placeholder; future
 /// per-tick counters (decisions made, interrupts raised, promoted events
@@ -35,12 +41,20 @@ pub struct Sim {
 }
 
 impl Sim {
-    /// Construct a fresh sim with the given world seed and (currently empty)
-    /// content bundle.
+    /// Construct a fresh sim with the given world seed and content bundle.
+    /// The bundle is decomposed into split `ObjectCatalog` and
+    /// `AccessoryCatalog` resources on the way into the ECS world.
     #[must_use]
-    pub fn new(seed: u64, _content: ContentBundle) -> Self {
+    pub fn new(seed: u64, content: ContentBundle) -> Self {
+        let mut world = World::new();
+        world.insert_resource(ObjectCatalog {
+            by_id: content.object_types,
+        });
+        world.insert_resource(AccessoryCatalog {
+            by_id: content.accessories,
+        });
         Self {
-            world: World::new(),
+            world,
             tick: 0,
             rng: PrngState::from_seed(seed),
             next_agent_id: 0,
@@ -60,11 +74,29 @@ impl Sim {
         self.tick
     }
 
+    /// Borrow the loaded object-type catalog. Mirror of the
+    /// `Res<ObjectCatalog>` view that systems will use.
+    #[must_use]
+    pub fn object_catalog(&self) -> &ObjectCatalog {
+        self.world
+            .get_resource::<ObjectCatalog>()
+            .expect("ObjectCatalog resource is inserted in Sim::new")
+    }
+
+    /// Borrow the loaded accessory catalog. Mirror of the
+    /// `Res<AccessoryCatalog>` view that systems will use.
+    #[must_use]
+    pub fn accessory_catalog(&self) -> &AccessoryCatalog {
+        self.world
+            .get_resource::<AccessoryCatalog>()
+            .expect("AccessoryCatalog resource is inserted in Sim::new")
+    }
+
     /// Spawn a fresh agent at full needs with a monotonically allocated
     /// `AgentId`.
     ///
     /// **Note:** this is a placeholder for content-driven agent generation.
-    /// It will be replaced when RON content loading lands.
+    /// It will be replaced in a future pass.
     pub fn spawn_test_agent(&mut self, name: &str) -> AgentId {
         let id = AgentId::new(self.next_agent_id);
         self.next_agent_id += 1;

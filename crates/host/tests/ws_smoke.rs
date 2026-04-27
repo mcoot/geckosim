@@ -60,7 +60,7 @@ where
 )]
 async fn ws_handshake_and_pause_resume() {
     // 1. Build a sim with three agents.
-    let mut sim = Sim::new(0x00C0_FFEE, ContentBundle);
+    let mut sim = Sim::new(0x00C0_FFEE, ContentBundle::default());
     sim.spawn_test_agent("Alice");
     sim.spawn_test_agent("Bob");
     sim.spawn_test_agent("Charlie");

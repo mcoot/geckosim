@@ -31,7 +31,6 @@ fn schema_types_are_reachable() {
 }
 
 #[test]
-#[expect(clippy::default_constructed_unit_structs, reason = "ContentBundle is a unit struct placeholder in this pass")]
 fn sim_ticks() {
     let mut sim = Sim::new(0, ContentBundle::default());
     assert_eq!(sim.current_tick(), 0);

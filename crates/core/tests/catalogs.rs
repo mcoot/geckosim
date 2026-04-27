@@ -56,3 +56,57 @@ fn accessory_slot_round_trips_via_ron() {
     let back: AccessorySlot = ron::from_str(&s).expect("deserialize");
     assert_eq!(v, back);
 }
+
+#[test]
+fn sim_new_inserts_object_and_accessory_catalogs_from_bundle() {
+    use gecko_sim_core::{ContentBundle, Sim};
+
+    let mut object_types = HashMap::new();
+    object_types.insert(
+        ObjectTypeId::new(7),
+        ObjectType {
+            id: ObjectTypeId::new(7),
+            display_name: "Chair".into(),
+            mesh_id: MeshId(2),
+            default_state: HashMap::new(),
+            advertisements: vec![],
+        },
+    );
+    let mut accessories = HashMap::new();
+    accessories.insert(
+        AccessoryId::new(9),
+        Accessory {
+            id: AccessoryId::new(9),
+            display_name: "Bow tie".into(),
+            mesh_id: MeshId(102),
+            slot: AccessorySlot::Neck,
+        },
+    );
+    let bundle = ContentBundle {
+        object_types,
+        accessories,
+    };
+
+    let sim = Sim::new(0, bundle);
+
+    // The catalogs are exposed for tests via dedicated accessors.
+    assert_eq!(sim.object_catalog().by_id.len(), 1);
+    assert!(sim
+        .object_catalog()
+        .by_id
+        .contains_key(&ObjectTypeId::new(7)));
+    assert_eq!(sim.accessory_catalog().by_id.len(), 1);
+    assert!(sim
+        .accessory_catalog()
+        .by_id
+        .contains_key(&AccessoryId::new(9)));
+}
+
+#[test]
+fn sim_new_with_default_bundle_has_empty_catalogs() {
+    use gecko_sim_core::{ContentBundle, Sim};
+
+    let sim = Sim::new(0, ContentBundle::default());
+    assert!(sim.object_catalog().by_id.is_empty());
+    assert!(sim.accessory_catalog().by_id.is_empty());
+}
