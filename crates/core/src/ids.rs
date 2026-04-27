@@ -11,6 +11,11 @@ macro_rules! id_newtype {
         #[derive(
             Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
         )]
+        #[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+        #[cfg_attr(
+            feature = "export-ts",
+            ts(export, export_to = "../../apps/web/src/types/sim/")
+        )]
         pub struct $name(pub u64);
 
         impl $name {

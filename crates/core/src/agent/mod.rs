@@ -127,6 +127,11 @@ pub enum Need {
 /// ECS component for needs (lazy sharding — schema and component share a
 /// type until a future pass needs them to diverge).
 #[derive(bevy_ecs::component::Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
+)]
 pub struct Needs {
     pub hunger: f32,
     pub sleep: f32,

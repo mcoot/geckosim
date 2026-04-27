@@ -15,6 +15,11 @@ use crate::ids::AgentId;
 /// determinism test in the test suite; serde derives let `protocol`
 /// envelope this type without a parallel wire shape.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
+)]
 pub struct Snapshot {
     pub tick: u64,
     pub agents: Vec<AgentSnapshot>,
@@ -24,6 +29,11 @@ pub struct Snapshot {
 /// other groupings (Personality, Mood, Spatial, …) extend this type as
 /// their first consumer system lands.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
+)]
 pub struct AgentSnapshot {
     pub id: AgentId,
     pub name: String,
