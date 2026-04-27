@@ -5,4 +5,4 @@ import type { WireFormat } from "./WireFormat";
 /**
  * Server-originated frame. Tagged with `"type"` field (`snake_case`).
  */
-export type ServerMessage = { "type": "hello", protocol_version: number, format: WireFormat, } | { "type": "init", current_tick: bigint, snapshot: Snapshot, } | { "type": "snapshot", snapshot: Snapshot, };
+export type ServerMessage = { "type": "hello", protocol_version: number, format: WireFormat, } | { "type": "init", current_tick: number, snapshot: Snapshot, } | { "type": "snapshot", snapshot: Snapshot, };

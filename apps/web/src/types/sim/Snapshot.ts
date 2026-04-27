@@ -6,4 +6,4 @@ import type { AgentSnapshot } from "./AgentSnapshot";
  * determinism test in the test suite; serde derives let `protocol`
  * envelope this type without a parallel wire shape.
  */
-export type Snapshot = { tick: bigint, agents: Array<AgentSnapshot>, };
+export type Snapshot = { tick: number, agents: Array<AgentSnapshot>, };

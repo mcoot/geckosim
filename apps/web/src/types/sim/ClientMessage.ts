@@ -4,4 +4,4 @@ import type { PlayerInput } from "./PlayerInput";
 /**
  * Client-originated frame. Tagged with `"type"` field (`snake_case`).
  */
-export type ClientMessage = { "type": "client_hello", last_known_tick: bigint | null, } | { "type": "player_input" } & PlayerInput;
+export type ClientMessage = { "type": "client_hello", last_known_tick: number | null, } | { "type": "player_input" } & PlayerInput;

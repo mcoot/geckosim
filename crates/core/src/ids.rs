@@ -16,7 +16,9 @@ macro_rules! id_newtype {
             feature = "export-ts",
             ts(export, export_to = "../../apps/web/src/types/sim/")
         )]
-        pub struct $name(pub u64);
+        pub struct $name(
+            #[cfg_attr(feature = "export-ts", ts(type = "number"))] pub u64,
+        );
 
         impl $name {
             #[must_use]

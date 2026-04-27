@@ -48,6 +48,7 @@ pub enum ServerMessage {
     },
     /// Full state on connect (or reconnect — fresh `Init` always for v0).
     Init {
+        #[cfg_attr(feature = "export-ts", ts(type = "number"))]
         current_tick: u64,
         snapshot: Snapshot,
     },
@@ -68,6 +69,7 @@ pub enum ServerMessage {
 pub enum ClientMessage {
     /// Handshake reply; `last_known_tick` is parsed but ignored at v0.
     ClientHello {
+        #[cfg_attr(feature = "export-ts", ts(type = "number | null"))]
         last_known_tick: Option<u64>,
     },
     /// Player input. v0 only carries driver-bound variants; sim-bound

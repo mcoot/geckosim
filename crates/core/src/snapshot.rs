@@ -21,6 +21,7 @@ use crate::ids::AgentId;
     ts(export, export_to = "../../apps/web/src/types/sim/")
 )]
 pub struct Snapshot {
+    #[cfg_attr(feature = "export-ts", ts(type = "number"))]
     pub tick: u64,
     pub agents: Vec<AgentSnapshot>,
 }
