@@ -3,7 +3,7 @@
 //! Each v0 system from ADR 0010 lands as its own submodule:
 //!   - `needs`         (1) need decay      ← landed
 //!   - `personality`   (2) personality (read-only)
-//!   - `mood`          (3) mood update
+//!   - `mood`          (3) mood update     ← landed
 //!   - `memory`        (4) memory ring & decay
 //!   - `relationships` (5) relationship updates
 //!   - `skills`        (6) skill gain
@@ -16,3 +16,4 @@
 //! Other systems join in later passes alongside additional ECS components.
 
 pub mod needs;
+pub mod mood;
