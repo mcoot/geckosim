@@ -12,5 +12,6 @@
 //! unit-tested without ECS scaffolding.
 
 pub mod effects;
+pub mod execute;
 pub mod predicates;
 pub mod scoring;

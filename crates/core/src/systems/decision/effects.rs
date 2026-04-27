@@ -18,7 +18,6 @@ pub struct EffectTarget<'a> {
 /// Apply one effect to the agent's target components. Unsupported variants
 /// log a `tracing::warn!` and return without modifying state, so the loader
 /// can ship content with future-system effects without crashing the sim.
-#[allow(dead_code, reason = "called by decide/execute systems in Tasks 4-5")]
 pub fn apply(effect: &Effect, target: &mut EffectTarget<'_>) {
     match effect {
         Effect::AgentNeedDelta(need, delta) => {
