@@ -5,15 +5,11 @@
 //!   - `personality`   (2) personality (read-only)
 //!   - `mood`          (3) mood update     ← landed
 //!   - `memory`        (4) memory ring & decay
-//!   - `relationships` (5) relationship updates
-//!   - `skills`        (6) skill gain
-//!   - `money`         (7) wages, transactions
-//!   - `housing`       (8) residence assignment
-//!   - `employment`    (9) job scheduling
-//!   - `health`        (10) condition + vitality
-//!   - `crime`         (11) crime + consequences
+//!   - …
 //!
-//! Other systems join in later passes alongside additional ECS components.
+//! Plus cross-cutting:
+//!   - `decision`      utility-AI scoring + commit + execute (per ADR 0004)  ← landed
 
 pub mod needs;
 pub mod mood;
+pub mod decision;
