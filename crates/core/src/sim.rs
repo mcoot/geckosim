@@ -7,10 +7,10 @@
 
 use std::collections::HashMap;
 
-use bevy_ecs::schedule::Schedule;
+use bevy_ecs::schedule::{IntoScheduleConfigs, Schedule};
 use bevy_ecs::world::World;
 
-use crate::agent::{Accessory, AccessoryCatalog, Identity, Needs};
+use crate::agent::{Accessory, AccessoryCatalog, Identity, Mood, Needs};
 use crate::ids::{AccessoryId, AgentId, ObjectTypeId};
 use crate::object::{ObjectCatalog, ObjectType};
 use crate::rng::PrngState;
@@ -60,7 +60,7 @@ impl Sim {
         });
 
         let mut schedule = Schedule::default();
-        schedule.add_systems(systems::needs::decay);
+        schedule.add_systems((systems::needs::decay, systems::mood::update).chain());
 
         Self {
             world,
@@ -103,12 +103,19 @@ impl Sim {
             .expect("AccessoryCatalog resource is inserted in Sim::new")
     }
 
-    /// Spawn a fresh agent at full needs with a monotonically allocated
-    /// `AgentId`.
+    /// Spawn a fresh agent at full needs and neutral mood with a
+    /// monotonically allocated `AgentId`.
     ///
     /// **Note:** this is a placeholder for content-driven agent generation.
     /// It will be replaced in a future pass.
     pub fn spawn_test_agent(&mut self, name: &str) -> AgentId {
+        self.spawn_test_agent_with_needs(name, Needs::full())
+    }
+
+    /// Spawn a fresh agent with explicit initial needs and neutral mood.
+    /// Test-only entry point used by the mood integration test to seed
+    /// empty needs without poking the ECS world directly.
+    pub fn spawn_test_agent_with_needs(&mut self, name: &str, needs: Needs) -> AgentId {
         let id = AgentId::new(self.next_agent_id);
         self.next_agent_id += 1;
         self.world.spawn((
@@ -116,7 +123,8 @@ impl Sim {
                 id,
                 name: name.to_string(),
             },
-            Needs::full(),
+            needs,
+            Mood::neutral(),
         ));
         id
     }

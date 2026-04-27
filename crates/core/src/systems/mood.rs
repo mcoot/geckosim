@@ -23,7 +23,6 @@ const STRESS_NEED_FLOOR: f32 = 0.5;
 /// `Needs` value, computes a target mood vector, and shifts the
 /// agent's `Mood` toward the target by `MOOD_DRIFT_RATE_PER_TICK`.
 /// Clamps each component to its declared range.
-#[allow(dead_code, reason = "registered in Sim::new in the next task in this pass")]
 pub(crate) fn update(mut q: Query<(&Needs, &mut Mood)>) {
     for (needs, mut mood) in &mut q {
         let mean_need = mean(needs);
