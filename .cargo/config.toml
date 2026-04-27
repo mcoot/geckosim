@@ -1,0 +1,7 @@
+# `ts-rs` resolves `#[ts(export_to = "...")]` paths relative to its
+# `TS_RS_EXPORT_DIR`, which defaults to `./bindings`. Override the base
+# to the crate root so the workspace-relative paths in the derives
+# (e.g. `../../apps/web/src/types/sim/`) resolve from `crates/<crate>/`
+# rather than `crates/<crate>/bindings/`.
+[env]
+TS_RS_EXPORT_DIR = { value = ".", relative = false }

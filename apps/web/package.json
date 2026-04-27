@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen-types": "cd ../.. && cargo test -p gecko-sim-protocol --features export-ts"
+    "gen-types": "cd ../.. && cargo test -p gecko-sim-core --features export-ts && cargo test -p gecko-sim-protocol --features export-ts"
   },
   "dependencies": {
     "next": "16.2.4",

@@ -8,7 +8,7 @@ To regenerate:
 
 `pnpm gen-types`
 
-(equivalent to `cargo test -p gecko-sim-protocol --features export-ts` from the workspace root)
+(equivalent to `cargo test -p gecko-sim-core --features export-ts && cargo test -p gecko-sim-protocol --features export-ts` from the workspace root)
 
 The generator is idempotent: re-running on unchanged Rust types produces
 zero diff. CI (when wired) gates on this property.
