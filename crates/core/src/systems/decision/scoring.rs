@@ -79,32 +79,33 @@ pub fn recency_penalty(
     }
 }
 
-/// Pick one candidate at random, weighted by score. If all weights are
-/// zero, falls back to uniform random over the candidate list. Returns
-/// `None` if the list is empty.
+/// Pick one candidate index at random, weighted by `weights[i]`. If all
+/// weights are zero, falls back to uniform random over the slice. Returns
+/// `None` if the slice is empty.
+///
+/// Returns an index (not an `AdvertisementId`) because callers may have
+/// candidates with non-unique IDs across different object types — e.g.
+/// fridge's `AdvertisementId(1)` and chair's `AdvertisementId(1)` are
+/// distinct ads under ADR 0011's `(ObjectTypeId, AdvertisementId)` template.
 #[must_use]
-pub fn weighted_pick<R: Rng + ?Sized>(
-    candidates: &[(AdvertisementId, f32)],
-    rng: &mut R,
-) -> Option<AdvertisementId> {
-    if candidates.is_empty() {
+pub fn weighted_pick<R: Rng + ?Sized>(weights: &[f32], rng: &mut R) -> Option<usize> {
+    if weights.is_empty() {
         return None;
     }
-    let total: f32 = candidates.iter().map(|(_, score)| *score).sum();
+    let total: f32 = weights.iter().sum();
     if total <= 0.0 {
         // Uniform fallback.
-        let idx = rng.random_range(0..candidates.len());
-        return Some(candidates[idx].0);
+        return Some(rng.random_range(0..weights.len()));
     }
     let mut roll: f32 = rng.random::<f32>() * total;
-    for (id, score) in candidates {
+    for (idx, score) in weights.iter().enumerate() {
         if roll < *score {
-            return Some(*id);
+            return Some(idx);
         }
         roll -= *score;
     }
-    // Numerical edge case (roll just under total): return the last candidate.
-    candidates.last().map(|(id, _)| *id)
+    // Numerical edge case (roll just under total): return the last index.
+    Some(weights.len() - 1)
 }
 
 fn need_value(needs: &Needs, need: Need) -> f32 {
@@ -261,46 +262,39 @@ mod tests {
     #[test]
     fn weighted_pick_returns_only_candidate() {
         let mut rng = rand_pcg::Pcg32::new(0, 0);
-        let candidates = vec![(AdvertisementId::new(1), 1.0)];
-        let picked = weighted_pick(&candidates, &mut rng);
-        assert_eq!(picked, Some(AdvertisementId::new(1)));
+        let weights = vec![1.0_f32];
+        let picked = weighted_pick(&weights, &mut rng);
+        assert_eq!(picked, Some(0));
     }
 
     #[test]
     fn weighted_pick_none_on_empty() {
         let mut rng = rand_pcg::Pcg32::new(0, 0);
-        let candidates: Vec<(AdvertisementId, f32)> = vec![];
-        assert_eq!(weighted_pick(&candidates, &mut rng), None);
+        let weights: Vec<f32> = vec![];
+        assert_eq!(weighted_pick(&weights, &mut rng), None);
     }
 
     #[test]
     fn weighted_pick_falls_back_to_uniform_on_zero_total() {
         let mut rng = rand_pcg::Pcg32::new(0, 0);
-        let candidates = vec![
-            (AdvertisementId::new(1), 0.0),
-            (AdvertisementId::new(2), 0.0),
-        ];
+        let weights = vec![0.0_f32, 0.0];
         // Pick something — both candidates equally likely. Just confirm
-        // we get one of them, not None.
-        let picked = weighted_pick(&candidates, &mut rng);
+        // we get a valid index, not None.
+        let picked = weighted_pick(&weights, &mut rng);
         assert!(picked.is_some());
-        let id = picked.unwrap();
-        assert!(id == AdvertisementId::new(1) || id == AdvertisementId::new(2));
+        let idx = picked.unwrap();
+        assert!(idx == 0 || idx == 1);
     }
 
     #[test]
     fn weighted_pick_picks_proportional_to_weight() {
-        // With score 100x larger, the high-weight candidate should win
-        // overwhelmingly. Run 100 picks and assert the high-weight wins
-        // > 90 times.
+        // With weight 100x larger, index 0 should win overwhelmingly.
+        // Run 100 picks and assert the high-weight wins > 90 times.
         let mut rng = rand_pcg::Pcg32::new(42, 0);
-        let candidates = vec![
-            (AdvertisementId::new(1), 100.0),
-            (AdvertisementId::new(2), 1.0),
-        ];
+        let weights = vec![100.0_f32, 1.0];
         let mut wins_high = 0;
         for _ in 0..100 {
-            if weighted_pick(&candidates, &mut rng) == Some(AdvertisementId::new(1)) {
+            if weighted_pick(&weights, &mut rng) == Some(0) {
                 wins_high += 1;
             }
         }

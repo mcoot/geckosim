@@ -122,20 +122,17 @@ fn pick_next_action<R: Rng + ?Sized>(
         };
     }
 
-    let id_score: Vec<(AdvertisementId, f32)> = scored
-        .iter()
-        .map(|(_, _, ad_id, _, score)| (*ad_id, *score))
-        .collect();
-    let picked_ad = weighted_pick(&id_score, prng).expect("non-empty after early return");
-    let (object_id, _type_id, _ad_id, duration_ticks, _score) = scored
-        .into_iter()
-        .find(|(_, _, ad_id, _, _)| *ad_id == picked_ad)
-        .expect("picked id is from the scored list");
+    // weighted_pick returns the index into `scored` so we resolve the
+    // full (ObjectId, AdvertisementId, duration) tuple unambiguously —
+    // AdvertisementId alone is not unique across object types.
+    let weights: Vec<f32> = scored.iter().map(|(_, _, _, _, score)| *score).collect();
+    let picked_idx = weighted_pick(&weights, prng).expect("non-empty after early return");
+    let (object_id, _type_id, ad_id, duration_ticks, _score) = scored[picked_idx];
 
     CommittedAction {
         action: ActionRef::Object {
             object: object_id,
-            ad: picked_ad,
+            ad: ad_id,
         },
         started_tick: current_tick,
         expected_end_tick: current_tick + u64::from(duration_ticks),
