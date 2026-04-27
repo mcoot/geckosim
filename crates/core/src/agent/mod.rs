@@ -181,11 +181,38 @@ pub enum MoodDim {
     Stress,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+/// Short-term emotional state per ADR 0011 (3-dimensional vector).
+/// Doubles as the ECS component (lazy sharding — schema and component
+/// share a type until a future pass needs them to diverge).
+#[derive(
+    bevy_ecs::component::Component,
+    Debug, Clone, Copy, PartialEq, Serialize, Deserialize,
+)]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
+)]
 pub struct Mood {
+    /// In `[-1, 1]`. Negative = unhappy, positive = happy.
     pub valence: f32,
+    /// In `[0, 1]`. 0 = calm, 1 = alert / excited.
     pub arousal: f32,
+    /// In `[0, 1]`. 0 = none, 1 = max stress.
     pub stress: f32,
+}
+
+impl Mood {
+    /// Neutral mood: all components at zero. Used when spawning new
+    /// agents before any needs-derived target has had a chance to drift.
+    #[must_use]
+    pub fn neutral() -> Self {
+        Self {
+            valence: 0.0,
+            arousal: 0.0,
+            stress: 0.0,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
