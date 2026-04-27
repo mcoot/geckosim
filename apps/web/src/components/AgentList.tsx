@@ -1,0 +1,49 @@
+"use client";
+
+import { useSimConnection } from "@/lib/sim/connection";
+
+const NEED_KEYS = ["hunger", "sleep", "social", "hygiene", "fun", "comfort"] as const;
+
+export function AgentList() {
+  const { state } = useSimConnection();
+  const snapshot = state.snapshot;
+
+  if (!snapshot) {
+    return <p className="text-sm text-neutral-500">No data yet.</p>;
+  }
+  if (snapshot.agents.length === 0) {
+    return <p className="text-sm text-neutral-500">No agents.</p>;
+  }
+
+  return (
+    <table className="w-full border-collapse text-sm">
+      <thead>
+        <tr className="border-b border-neutral-300 text-left dark:border-neutral-700">
+          <th className="px-2 py-1">ID</th>
+          <th className="px-2 py-1">Name</th>
+          {NEED_KEYS.map((k) => (
+            <th key={k} className="px-2 py-1 capitalize">
+              {k}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {snapshot.agents.map((agent) => (
+          <tr
+            key={agent.id}
+            className="border-b border-neutral-200 last:border-0 dark:border-neutral-800"
+          >
+            <td className="px-2 py-1 font-mono">{agent.id}</td>
+            <td className="px-2 py-1">{agent.name}</td>
+            {NEED_KEYS.map((k) => (
+              <td key={k} className="px-2 py-1 font-mono">
+                {agent.needs[k].toFixed(2)}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
