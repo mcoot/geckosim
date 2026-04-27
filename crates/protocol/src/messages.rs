@@ -23,6 +23,11 @@ pub const PROTOCOL_VERSION: u32 = 1;
 /// extra variant slot anchors future `MessagePack` / postcard support.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
+)]
 pub enum WireFormat {
     Json,
 }
@@ -30,6 +35,11 @@ pub enum WireFormat {
 /// Server-originated frame. Tagged with `"type"` field (`snake_case`).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
+)]
 pub enum ServerMessage {
     /// Handshake greeting, sent immediately after the WS upgrade.
     Hello {
@@ -50,6 +60,11 @@ pub enum ServerMessage {
 /// Client-originated frame. Tagged with `"type"` field (`snake_case`).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
+)]
 pub enum ClientMessage {
     /// Handshake reply; `last_known_tick` is parsed but ignored at v0.
     ClientHello {
@@ -65,6 +80,11 @@ pub enum ClientMessage {
 /// `ClientMessage` "type" tag stays unique.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
+)]
 pub enum PlayerInput {
     /// Set wall-clock tick rate. `multiplier == 0.0` means paused.
     /// Driver clamps to `[0.0, 64.0]`; NaN is treated as 0.0.
