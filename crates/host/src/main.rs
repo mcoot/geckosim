@@ -1,4 +1,5 @@
-use gecko_sim_core::{ContentBundle, Sim};
+use anyhow::Context;
+use gecko_sim_core::Sim;
 use gecko_sim_host::{config, sim_driver, ws_server};
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
@@ -11,7 +12,17 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().with_env_filter(filter).init();
     tracing::info!("gecko-sim host v{}", env!("CARGO_PKG_VERSION"));
 
-    let mut sim = Sim::new(DEMO_SEED, ContentBundle::default());
+    let content_path = config::content_dir();
+    tracing::info!(path = %content_path.display(), "loading content");
+    let content = gecko_sim_content::load_from_dir(&content_path)
+        .with_context(|| format!("loading content from {}", content_path.display()))?;
+    tracing::info!(
+        object_types = content.object_types.len(),
+        accessories = content.accessories.len(),
+        "content loaded"
+    );
+
+    let mut sim = Sim::new(DEMO_SEED, content);
     sim.spawn_test_agent("Alice");
     sim.spawn_test_agent("Bob");
     sim.spawn_test_agent("Charlie");
