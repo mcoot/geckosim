@@ -20,6 +20,7 @@ fn sample_snapshot_with_agents(count: usize) -> Snapshot {
             name: names.get(i).copied().unwrap_or("Agent").to_string(),
             needs: Needs::full(),
             mood: Mood::neutral(),
+            current_action: None,
         })
         .collect();
     Snapshot { tick: 7, agents }
@@ -132,4 +133,23 @@ fn three_agent_snapshot_roundtrips() {
 #[test]
 fn wire_format_json_variant_roundtrips() {
     roundtrip(&WireFormat::Json);
+}
+
+#[test]
+fn agent_snapshot_with_current_action_roundtrips() {
+    use gecko_sim_core::CurrentActionView;
+    let snap = Snapshot {
+        tick: 10,
+        agents: vec![AgentSnapshot {
+            id: AgentId::new(0),
+            name: "Alice".to_string(),
+            needs: Needs::full(),
+            mood: Mood::neutral(),
+            current_action: Some(CurrentActionView {
+                display_name: "Eat snack".to_string(),
+                fraction_complete: 0.5,
+            }),
+        }],
+    };
+    roundtrip(&snap);
 }

@@ -217,11 +217,16 @@ impl Sim {
                 let identity = entity_ref.get::<Identity>()?;
                 let needs = entity_ref.get::<Needs>()?;
                 let mood = entity_ref.get::<Mood>()?;
+                let current_action = entity_ref
+                    .get::<CurrentAction>()
+                    .and_then(|c| c.0.as_ref())
+                    .and_then(|action| project_current_action(action, self.tick, self));
                 Some(AgentSnapshot {
                     id: identity.id,
                     name: identity.name.clone(),
                     needs: *needs,
                     mood: *mood,
+                    current_action,
                 })
             })
             .collect();
@@ -231,4 +236,57 @@ impl Sim {
             agents,
         }
     }
+}
+
+/// Build a `CurrentActionView` from a `CommittedAction`. Looks up the
+/// advertisement's `display_name` via the catalog (for object-targeted
+/// actions); falls back to `"Idle"` / `"Wait"` for self-actions.
+/// Returns `None` only if the catalog lookup fails for an object action,
+/// which would indicate a data-flow bug — we log and produce `None`.
+#[allow(
+    clippy::cast_precision_loss,
+    reason = "tick numbers are small u64s; f32 precision is fine for fraction display"
+)]
+fn project_current_action(
+    action: &crate::decision::CommittedAction,
+    current_tick: u64,
+    sim: &Sim,
+) -> Option<crate::snapshot::CurrentActionView> {
+    let duration = action
+        .expected_end_tick
+        .saturating_sub(action.started_tick) as f32;
+    let elapsed = current_tick.saturating_sub(action.started_tick) as f32;
+    let fraction_complete = if duration > 0.0 {
+        (elapsed / duration).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    let display_name = match action.action {
+        crate::decision::ActionRef::SelfAction(crate::decision::SelfActionKind::Idle) => {
+            "Idle".to_string()
+        }
+        crate::decision::ActionRef::SelfAction(crate::decision::SelfActionKind::Wait) => {
+            "Wait".to_string()
+        }
+        crate::decision::ActionRef::Object { object, ad } => {
+            // Look up the smart-object instance to get its type, then
+            // the catalog's advertisement display_name.
+            let object_entry = sim
+                .world
+                .iter_entities()
+                .find(|e| e.get::<crate::object::SmartObject>().is_some_and(|o| o.id == object))?;
+            let smart_object = object_entry.get::<crate::object::SmartObject>()?;
+            let object_type = sim
+                .world
+                .resource::<ObjectCatalog>()
+                .by_id
+                .get(&smart_object.type_id)?;
+            let advertisement = object_type.advertisements.iter().find(|a| a.id == ad)?;
+            advertisement.display_name.clone()
+        }
+    };
+    Some(crate::snapshot::CurrentActionView {
+        display_name,
+        fraction_complete,
+    })
 }

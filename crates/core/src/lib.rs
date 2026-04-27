@@ -25,6 +25,6 @@ pub use decision::{CurrentAction, RecentActionsRing, IDLE_DURATION_TICKS};
 pub use object::ObjectCatalog;
 pub use rng::PrngState;
 pub use sim::{ContentBundle, Sim, TickReport};
-pub use snapshot::{AgentSnapshot, Snapshot};
+pub use snapshot::{AgentSnapshot, CurrentActionView, Snapshot};
 pub use time::{CurrentTick, Tick};
 pub use world::{Color, Vec2};

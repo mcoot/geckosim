@@ -11,6 +11,24 @@ use serde::{Deserialize, Serialize};
 use crate::agent::{Mood, Needs};
 use crate::ids::AgentId;
 
+/// Lossy projection of `CommittedAction` for the wire. Carries enough for
+/// the frontend to render "Alice is doing X (50%)". The full
+/// `CommittedAction` lives only as an ECS component.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
+)]
+pub struct CurrentActionView {
+    /// `Advertisement.display_name` for object-targeted actions, or
+    /// `"Idle"` / `"Wait"` for self-actions.
+    pub display_name: String,
+    /// Progress through the action's `duration_ticks`. `0.0` at start,
+    /// rises monotonically toward `1.0` at scheduled completion.
+    pub fraction_complete: f32,
+}
+
 /// Full sim state at a tick boundary. `PartialEq` is required by the
 /// determinism test in the test suite; serde derives let `protocol`
 /// envelope this type without a parallel wire shape.
@@ -27,7 +45,7 @@ pub struct Snapshot {
 }
 
 /// Per-agent snapshot row. Holds the slice of state this pass exposes;
-/// other groupings (Personality, Mood, Spatial, …) extend this type as
+/// other groupings (Personality, Memory, Spatial, …) extend this type as
 /// their first consumer system lands.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
@@ -40,11 +58,12 @@ pub struct AgentSnapshot {
     pub name: String,
     pub needs: Needs,
     pub mood: Mood,
+    pub current_action: Option<CurrentActionView>,
 }
 
 #[cfg(test)]
 mod serde_derive_tests {
-    use super::{AgentSnapshot, Snapshot};
+    use super::{AgentSnapshot, CurrentActionView, Snapshot};
 
     fn assert_serialize<T: serde::Serialize>() {}
     fn assert_deserialize<T: serde::de::DeserializeOwned>() {}
@@ -55,5 +74,7 @@ mod serde_derive_tests {
         assert_deserialize::<Snapshot>();
         assert_serialize::<AgentSnapshot>();
         assert_deserialize::<AgentSnapshot>();
+        assert_serialize::<CurrentActionView>();
+        assert_deserialize::<CurrentActionView>();
     }
 }
