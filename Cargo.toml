@@ -25,6 +25,7 @@ bitflags = { version = "2", features = ["serde"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync", "time", "signal"] }
 tokio-tungstenite = "0.24"
 futures-util = "0.3"
+tempfile = "3"
 
 gecko-sim-core = { path = "crates/core" }
 gecko-sim-content = { path = "crates/content" }
