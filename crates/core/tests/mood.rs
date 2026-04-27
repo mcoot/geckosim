@@ -29,11 +29,9 @@ fn empty_needs_drives_mood_toward_target_through_sim_tick() {
     let snap = sim.snapshot();
     let agent = &snap.agents[0];
 
-    // TODO(Task 5): re-enable mood assertions once AgentSnapshot.mood lands.
     // After 500 ticks at α=0.01 against targets (-1, 1, 1) from neutral,
     // mood reaches roughly (1 - 0.99^500) ≈ 99.3% of target.
-    let _ = agent;
-    // assert!(agent.mood.valence < -0.5, "valence={}", agent.mood.valence);
-    // assert!(agent.mood.arousal > 0.5, "arousal={}", agent.mood.arousal);
-    // assert!(agent.mood.stress > 0.5, "stress={}", agent.mood.stress);
+    assert!(agent.mood.valence < -0.5, "valence={}", agent.mood.valence);
+    assert!(agent.mood.arousal > 0.5, "arousal={}", agent.mood.arousal);
+    assert!(agent.mood.stress > 0.5, "stress={}", agent.mood.stress);
 }

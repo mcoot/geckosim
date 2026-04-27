@@ -1,7 +1,7 @@
 //! Serde roundtrip every wire type. Locks the JSON-on-the-wire format
 //! against accidental drift.
 
-use gecko_sim_core::agent::Needs;
+use gecko_sim_core::agent::{Mood, Needs};
 use gecko_sim_core::ids::AgentId;
 use gecko_sim_core::{AgentSnapshot, Snapshot};
 use gecko_sim_protocol::{
@@ -19,6 +19,7 @@ fn sample_snapshot_with_agents(count: usize) -> Snapshot {
             id: AgentId::new(i as u64),
             name: names.get(i).copied().unwrap_or("Agent").to_string(),
             needs: Needs::full(),
+            mood: Mood::neutral(),
         })
         .collect();
     Snapshot { tick: 7, agents }

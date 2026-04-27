@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::agent::Needs;
+use crate::agent::{Mood, Needs};
 use crate::ids::AgentId;
 
 /// Full sim state at a tick boundary. `PartialEq` is required by the
@@ -39,6 +39,7 @@ pub struct AgentSnapshot {
     pub id: AgentId,
     pub name: String,
     pub needs: Needs,
+    pub mood: Mood,
 }
 
 #[cfg(test)]

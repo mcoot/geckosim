@@ -139,10 +139,12 @@ impl Sim {
             .filter_map(|entity_ref| {
                 let identity = entity_ref.get::<Identity>()?;
                 let needs = entity_ref.get::<Needs>()?;
+                let mood = entity_ref.get::<Mood>()?;
                 Some(AgentSnapshot {
                     id: identity.id,
                     name: identity.name.clone(),
                     needs: *needs,
+                    mood: *mood,
                 })
             })
             .collect();
