@@ -43,7 +43,7 @@ via `ts-rs`. Regenerate after changing wire types:
 pnpm gen-types
 ```
 
-(equivalent to `cargo test -p gecko-sim-core -p gecko-sim-protocol --features gecko-sim-protocol/export-ts` from the workspace root)
+(equivalent to `cargo test -p gecko-sim-core --features export-ts && cargo test -p gecko-sim-protocol --features export-ts` from the workspace root)
 
 The generator is idempotent; CI gates on the generated files matching
 what's committed.

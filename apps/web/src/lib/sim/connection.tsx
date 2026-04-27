@@ -17,6 +17,12 @@ import { initialState, reduce, type SimState } from "./reducer";
 const DEFAULT_WS_URL = "ws://127.0.0.1:9001/";
 const WS_URL = process.env.NEXT_PUBLIC_SIM_WS_URL ?? DEFAULT_WS_URL;
 
+// Mirrors `gecko_sim_protocol::PROTOCOL_VERSION`. Bumped in lock-step on
+// incompatible wire changes; `ts-rs` does not auto-export bare consts so
+// this is hand-maintained. A mismatch logs a warning but does not refuse
+// the connection at v0.
+const EXPECTED_PROTOCOL_VERSION = 1;
+
 export interface SimConnectionApi {
   state: SimState;
   sendInput: (input: PlayerInput) => void;
@@ -53,8 +59,14 @@ export function SimConnectionProvider({ children }: { children: ReactNode }) {
       }
       dispatch({ kind: "server-message", msg });
 
-      // Hello → reply with ClientHello.
+      // Hello → check version, reply with ClientHello.
       if (msg.type === "hello") {
+        if (msg.protocol_version !== EXPECTED_PROTOCOL_VERSION) {
+          console.warn(
+            `protocol version mismatch: server=${msg.protocol_version}, ` +
+              `client=${EXPECTED_PROTOCOL_VERSION}; proceeding anyway at v0`,
+          );
+        }
         const reply: ClientMessage = { type: "client_hello", last_known_tick: null };
         ws.send(JSON.stringify(reply));
       }
