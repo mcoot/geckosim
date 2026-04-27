@@ -11,6 +11,7 @@
 //! Pure helpers for each phase live in their own submodule so they can be
 //! unit-tested without ECS scaffolding.
 
+pub mod decide;
 pub mod effects;
 pub mod execute;
 pub mod predicates;

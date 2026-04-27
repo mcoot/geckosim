@@ -28,7 +28,6 @@ pub const MODIFIER_FLOOR: f32 = 0.1;
 /// factor * (1.0 - need_value(needs, need))`. Pressure rises as the need
 /// drops; weights are content-defined (non-negative in seed catalog).
 #[must_use]
-#[allow(dead_code, reason = "called by decide/execute systems in Tasks 4-5")]
 pub fn base_utility(needs: &Needs, template: &ScoreTemplate) -> f32 {
     template
         .need_weights
@@ -40,7 +39,6 @@ pub fn base_utility(needs: &Needs, template: &ScoreTemplate) -> f32 {
 /// Per ADR 0011: `1.0 + sensitivity * dot(personality, weights)`,
 /// clamped to `[MODIFIER_FLOOR, +∞]`.
 #[must_use]
-#[allow(dead_code, reason = "called by decide/execute systems in Tasks 4-5")]
 pub fn personality_modifier(personality: &Personality, weights: &Personality) -> f32 {
     let dot = personality.openness * weights.openness
         + personality.conscientiousness * weights.conscientiousness
@@ -55,7 +53,6 @@ pub fn personality_modifier(personality: &Personality, weights: &Personality) ->
 /// at `MODIFIER_FLOOR`. Other `SituationalModifier` variants are no-ops at
 /// v0 (they contribute `1.0`).
 #[must_use]
-#[allow(dead_code, reason = "called by decide/execute systems in Tasks 4-5")]
 pub fn mood_modifier(mood: &Mood, modifiers: &[SituationalModifier]) -> f32 {
     let mut product = 1.0;
     for modifier in modifiers {
@@ -70,7 +67,6 @@ pub fn mood_modifier(mood: &Mood, modifiers: &[SituationalModifier]) -> f32 {
 /// `RECENCY_PENALTY` if the ad was performed recently (matched by
 /// `(ObjectTypeId, AdvertisementId)` template), else 0.
 #[must_use]
-#[allow(dead_code, reason = "called by decide/execute systems in Tasks 4-5")]
 pub fn recency_penalty(
     ring: &RecentActionsRing,
     type_id: ObjectTypeId,
@@ -87,7 +83,6 @@ pub fn recency_penalty(
 /// zero, falls back to uniform random over the candidate list. Returns
 /// `None` if the list is empty.
 #[must_use]
-#[allow(dead_code, reason = "called by decide/execute systems in Tasks 4-5")]
 pub fn weighted_pick<R: Rng + ?Sized>(
     candidates: &[(AdvertisementId, f32)],
     rng: &mut R,

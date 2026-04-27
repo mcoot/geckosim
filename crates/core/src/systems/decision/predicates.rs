@@ -23,7 +23,6 @@ pub struct EvalContext<'a> {
 /// referent systems don't exist at v0 (AgentSkill/AgentInventory/
 /// AgentRelationship/MacroState/TimeOfDay) — the ad gets filtered out.
 #[must_use]
-#[allow(dead_code, reason = "called by decide/execute systems in Tasks 4-5")]
 pub fn evaluate(predicate: &Predicate, ctx: &EvalContext<'_>) -> bool {
     match predicate {
         Predicate::AgentNeed(need, op, threshold) => {
