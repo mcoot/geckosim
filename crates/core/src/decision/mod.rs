@@ -72,3 +72,52 @@ pub struct RecentActionEntry {
     pub ad_template: (ObjectTypeId, AdvertisementId),
     pub completed_tick: u64,
 }
+
+use std::collections::VecDeque;
+
+// ---------------------------------------------------------------------------
+// ECS components for the decision runtime (per ADR 0011)
+// ---------------------------------------------------------------------------
+
+/// Wrapper around the optional committed action so it lives as an ECS
+/// component. `None` means the agent is awaiting a decision next tick.
+#[derive(
+    bevy_ecs::component::Component,
+    Debug, Clone, PartialEq, Default, Serialize, Deserialize,
+)]
+pub struct CurrentAction(pub Option<CommittedAction>);
+
+/// Bounded ring of recent action templates. FIFO eviction at 16 entries
+/// (per ADR 0011). Used by the recency penalty in scoring.
+#[derive(
+    bevy_ecs::component::Component,
+    Debug, Clone, PartialEq, Default, Serialize, Deserialize,
+)]
+pub struct RecentActionsRing {
+    pub entries: VecDeque<RecentActionEntry>,
+}
+
+impl RecentActionsRing {
+    /// Per ADR 0011.
+    pub const CAPACITY: usize = 16;
+
+    /// Push one entry, evicting the oldest if at capacity.
+    pub fn push(&mut self, entry: RecentActionEntry) {
+        if self.entries.len() >= Self::CAPACITY {
+            self.entries.pop_front();
+        }
+        self.entries.push_back(entry);
+    }
+
+    /// True if any entry's `ad_template` matches `(type_id, ad_id)`.
+    #[must_use]
+    pub fn contains(&self, type_id: crate::ids::ObjectTypeId, ad_id: crate::ids::AdvertisementId) -> bool {
+        self.entries
+            .iter()
+            .any(|e| e.ad_template == (type_id, ad_id))
+    }
+}
+
+/// `SelfAction(Idle)` duration when no advertisements survive predicate
+/// filtering. Re-decides 5 ticks later rather than every tick.
+pub const IDLE_DURATION_TICKS: u32 = 5;

@@ -10,12 +10,14 @@ use std::collections::HashMap;
 use bevy_ecs::schedule::{IntoScheduleConfigs, Schedule};
 use bevy_ecs::world::World;
 
-use crate::agent::{Accessory, AccessoryCatalog, Identity, Mood, Needs};
+use crate::agent::{Accessory, AccessoryCatalog, Identity, Mood, Needs, Personality};
+use crate::decision::{CurrentAction, RecentActionsRing};
 use crate::ids::{AccessoryId, AgentId, ObjectTypeId};
 use crate::object::{ObjectCatalog, ObjectType};
 use crate::rng::PrngState;
 use crate::snapshot::{AgentSnapshot, Snapshot};
 use crate::systems;
+use crate::time::CurrentTick;
 
 /// Catalog data passed into `Sim::new`. Loaded from RON files by the
 /// `gecko-sim-content` crate; populated maps after a real load, empty maps
@@ -32,17 +34,21 @@ pub struct ContentBundle {
 #[derive(Debug, Clone, Default)]
 pub struct TickReport;
 
+/// Wrapper around the global `PrngState` so systems can borrow it via
+/// `ResMut<SimRngResource>`. Per-agent RNG sub-streams are deferred per
+/// the spec's "RNG plumbing" section.
+#[derive(bevy_ecs::prelude::Resource, Debug)]
+pub struct SimRngResource(pub PrngState);
+
 /// The live simulation. Owns its `bevy_ecs::World`, a `Schedule` of
 /// per-tick systems, and the canonical clock.
 pub struct Sim {
     world: World,
     schedule: Schedule,
     tick: u64,
-    // Stored for determinism; needs-decay does not consume randomness, but
-    // future systems will. The seed is captured here at construction time.
-    #[expect(dead_code, reason = "consumed by first RNG-using system in a later pass")]
-    rng: PrngState,
     next_agent_id: u64,
+    #[expect(dead_code, reason = "consumed by spawn_test_object in a later pass")]
+    next_object_id: u64,
 }
 
 impl Sim {
@@ -58,6 +64,8 @@ impl Sim {
         world.insert_resource(AccessoryCatalog {
             by_id: content.accessories,
         });
+        world.insert_resource(SimRngResource(PrngState::from_seed(seed)));
+        world.insert_resource(CurrentTick(0));
 
         let mut schedule = Schedule::default();
         schedule.add_systems((systems::needs::decay, systems::mood::update).chain());
@@ -66,16 +74,18 @@ impl Sim {
             world,
             schedule,
             tick: 0,
-            rng: PrngState::from_seed(seed),
             next_agent_id: 0,
+            next_object_id: 0,
         }
     }
 
     /// Advance the simulation by one tick (one sim-minute per ADR 0008).
-    /// Runs the per-tick `Schedule` against the world.
+    /// Increments the tick counter first so systems see the tick they're
+    /// processing via `Res<CurrentTick>`.
     pub fn tick(&mut self) -> TickReport {
-        self.schedule.run(&mut self.world);
         self.tick += 1;
+        *self.world.resource_mut::<CurrentTick>() = CurrentTick(self.tick);
+        self.schedule.run(&mut self.world);
         TickReport
     }
 
@@ -112,9 +122,9 @@ impl Sim {
         self.spawn_test_agent_with_needs(name, Needs::full())
     }
 
-    /// Spawn a fresh agent with explicit initial needs and neutral mood.
-    /// Test-only entry point used by the mood integration test to seed
-    /// empty needs without poking the ECS world directly.
+    /// Spawn a fresh agent with explicit initial needs, neutral mood,
+    /// default personality, and decision-runtime components (no current
+    /// action, empty recent-actions ring). Test-only entry point.
     pub fn spawn_test_agent_with_needs(&mut self, name: &str, needs: Needs) -> AgentId {
         let id = AgentId::new(self.next_agent_id);
         self.next_agent_id += 1;
@@ -125,6 +135,9 @@ impl Sim {
             },
             needs,
             Mood::neutral(),
+            Personality::default(),
+            CurrentAction::default(),
+            RecentActionsRing::default(),
         ));
         id
     }

@@ -26,3 +26,11 @@ pub const TICKS_PER_SIM_DAY: u64 = TICKS_PER_SIM_HOUR * 24;
 
 /// Macro tick cadence per ADR 0009: one macro tick per sim-hour.
 pub const TICKS_PER_MACRO_TICK: u64 = TICKS_PER_SIM_HOUR;
+
+/// Current sim tick exposed to ECS systems via `Res<CurrentTick>`. Mirrors
+/// `Sim::current_tick()`. Updated at the start of every `Sim::tick` call,
+/// before the schedule runs, so systems see the tick they're processing.
+///
+/// At construction `CurrentTick(0)`; after `N` calls to `Sim::tick`, `N`.
+#[derive(bevy_ecs::prelude::Resource, Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CurrentTick(pub u64);

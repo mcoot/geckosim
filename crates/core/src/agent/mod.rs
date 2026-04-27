@@ -161,7 +161,14 @@ impl Needs {
 // ---------------------------------------------------------------------------
 
 /// Big Five personality components; each in `[-1, 1]`. Per ADR 0011.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+/// Doubles as the ECS component (lazy sharding). At v0 every agent gets
+/// `Personality::default()` (all zeros) until the personality system pass
+/// lands — until then `personality_modifier` in the score formula stays
+/// at 1.0.
+#[derive(
+    bevy_ecs::component::Component,
+    Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize,
+)]
 pub struct Personality {
     pub openness: f32,
     pub conscientiousness: f32,
