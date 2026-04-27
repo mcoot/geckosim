@@ -9,6 +9,7 @@ const fixtureSnapshot = (tick: number): Snapshot => ({
       id: 0,
       name: "Alice",
       needs: { hunger: 1, sleep: 1, social: 1, hygiene: 1, fun: 1, comfort: 1 },
+      mood: { valence: 0, arousal: 0, stress: 0 },
     },
   ],
 });
@@ -65,5 +66,28 @@ describe("reduce", () => {
   it("ws-error transitions to disconnected", () => {
     const next = reduce(initialState, { kind: "ws-error" });
     expect(next.status).toBe("disconnected");
+  });
+
+  it("init message preserves the mood field on the snapshot", () => {
+    const snap: Snapshot = {
+      tick: 10,
+      agents: [
+        {
+          id: 0,
+          name: "Alice",
+          needs: { hunger: 1, sleep: 1, social: 1, hygiene: 1, fun: 1, comfort: 1 },
+          mood: { valence: -0.5, arousal: 0.7, stress: 0.3 },
+        },
+      ],
+    };
+    const next = reduce(initialState, {
+      kind: "server-message",
+      msg: { type: "init", current_tick: 10, snapshot: snap },
+    });
+    expect(next.snapshot?.agents[0].mood).toEqual({
+      valence: -0.5,
+      arousal: 0.7,
+      stress: 0.3,
+    });
   });
 });

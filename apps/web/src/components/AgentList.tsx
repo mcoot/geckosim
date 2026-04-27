@@ -3,6 +3,7 @@
 import { useSimConnection } from "@/lib/sim/connection";
 
 const NEED_KEYS = ["hunger", "sleep", "social", "hygiene", "fun", "comfort"] as const;
+const MOOD_KEYS = ["valence", "arousal", "stress"] as const;
 
 export function AgentList() {
   const { state } = useSimConnection();
@@ -26,6 +27,11 @@ export function AgentList() {
               {k}
             </th>
           ))}
+          {MOOD_KEYS.map((k) => (
+            <th key={k} className="px-2 py-1 capitalize text-neutral-500">
+              {k}
+            </th>
+          ))}
         </tr>
       </thead>
       <tbody>
@@ -39,6 +45,11 @@ export function AgentList() {
             {NEED_KEYS.map((k) => (
               <td key={k} className="px-2 py-1 font-mono">
                 {agent.needs[k].toFixed(2)}
+              </td>
+            ))}
+            {MOOD_KEYS.map((k) => (
+              <td key={k} className="px-2 py-1 font-mono text-neutral-500">
+                {agent.mood[k].toFixed(2)}
               </td>
             ))}
           </tr>
