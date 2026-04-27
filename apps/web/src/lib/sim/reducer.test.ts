@@ -10,6 +10,7 @@ const fixtureSnapshot = (tick: number): Snapshot => ({
       name: "Alice",
       needs: { hunger: 1, sleep: 1, social: 1, hygiene: 1, fun: 1, comfort: 1 },
       mood: { valence: 0, arousal: 0, stress: 0 },
+      current_action: null,
     },
   ],
 });
@@ -77,6 +78,7 @@ describe("reduce", () => {
           name: "Alice",
           needs: { hunger: 1, sleep: 1, social: 1, hygiene: 1, fun: 1, comfort: 1 },
           mood: { valence: -0.5, arousal: 0.7, stress: 0.3 },
+          current_action: null,
         },
       ],
     };
@@ -88,6 +90,29 @@ describe("reduce", () => {
       valence: -0.5,
       arousal: 0.7,
       stress: 0.3,
+    });
+  });
+
+  it("init message preserves the current_action field on the snapshot", () => {
+    const snap: Snapshot = {
+      tick: 10,
+      agents: [
+        {
+          id: 0,
+          name: "Alice",
+          needs: { hunger: 1, sleep: 1, social: 1, hygiene: 1, fun: 1, comfort: 1 },
+          mood: { valence: 0, arousal: 0, stress: 0 },
+          current_action: { display_name: "Eat snack", fraction_complete: 0.5 },
+        },
+      ],
+    };
+    const next = reduce(initialState, {
+      kind: "server-message",
+      msg: { type: "init", current_tick: 10, snapshot: snap },
+    });
+    expect(next.snapshot?.agents[0].current_action).toEqual({
+      display_name: "Eat snack",
+      fraction_complete: 0.5,
     });
   });
 });

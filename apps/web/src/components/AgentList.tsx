@@ -32,6 +32,7 @@ export function AgentList() {
               {k}
             </th>
           ))}
+          <th className="px-2 py-1">Doing</th>
         </tr>
       </thead>
       <tbody>
@@ -52,6 +53,13 @@ export function AgentList() {
                 {agent.mood[k].toFixed(2)}
               </td>
             ))}
+            <td className="px-2 py-1">
+              {agent.current_action
+                ? `${agent.current_action.display_name} (${(
+                    agent.current_action.fraction_complete * 100
+                  ).toFixed(0)}%)`
+                : "—"}
+            </td>
           </tr>
         ))}
       </tbody>
