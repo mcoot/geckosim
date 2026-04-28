@@ -10,6 +10,13 @@ const fixtureSnapshot = (tick: number): Snapshot => ({
       name: "Alice",
       needs: { hunger: 1, sleep: 1, social: 1, hygiene: 1, fun: 1, comfort: 1 },
       mood: { valence: 0, arousal: 0, stress: 0 },
+      personality: {
+        openness: 0,
+        conscientiousness: 0,
+        extraversion: 0,
+        agreeableness: 0,
+        neuroticism: 0,
+      },
       current_action: null,
     },
   ],
@@ -78,6 +85,13 @@ describe("reduce", () => {
           name: "Alice",
           needs: { hunger: 1, sleep: 1, social: 1, hygiene: 1, fun: 1, comfort: 1 },
           mood: { valence: -0.5, arousal: 0.7, stress: 0.3 },
+          personality: {
+            openness: 0,
+            conscientiousness: 0,
+            extraversion: 0,
+            agreeableness: 0,
+            neuroticism: 0,
+          },
           current_action: null,
         },
       ],
@@ -102,6 +116,13 @@ describe("reduce", () => {
           name: "Alice",
           needs: { hunger: 1, sleep: 1, social: 1, hygiene: 1, fun: 1, comfort: 1 },
           mood: { valence: 0, arousal: 0, stress: 0 },
+          personality: {
+            openness: 0,
+            conscientiousness: 0,
+            extraversion: 0,
+            agreeableness: 0,
+            neuroticism: 0,
+          },
           current_action: { display_name: "Eat snack", fraction_complete: 0.5 },
         },
       ],
@@ -113,6 +134,39 @@ describe("reduce", () => {
     expect(next.snapshot?.agents[0].current_action).toEqual({
       display_name: "Eat snack",
       fraction_complete: 0.5,
+    });
+  });
+
+  it("init message preserves the personality field on the snapshot", () => {
+    const snap: Snapshot = {
+      tick: 5,
+      agents: [
+        {
+          id: 0,
+          name: "Alice",
+          needs: { hunger: 1, sleep: 1, social: 1, hygiene: 1, fun: 1, comfort: 1 },
+          mood: { valence: 0, arousal: 0, stress: 0 },
+          personality: {
+            openness: 0.4,
+            conscientiousness: -0.3,
+            extraversion: 0.7,
+            agreeableness: -0.5,
+            neuroticism: 0.1,
+          },
+          current_action: null,
+        },
+      ],
+    };
+    const next = reduce(initialState, {
+      kind: "server-message",
+      msg: { type: "init", current_tick: 5, snapshot: snap },
+    });
+    expect(next.snapshot?.agents[0].personality).toEqual({
+      openness: 0.4,
+      conscientiousness: -0.3,
+      extraversion: 0.7,
+      agreeableness: -0.5,
+      neuroticism: 0.1,
     });
   });
 });
