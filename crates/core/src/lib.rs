@@ -27,4 +27,4 @@ pub use rng::PrngState;
 pub use sim::{ContentBundle, Sim, TickReport};
 pub use snapshot::{AgentSnapshot, CurrentActionView, Snapshot};
 pub use time::{CurrentTick, Tick};
-pub use world::{Color, Vec2};
+pub use world::{Color, Rect2, Vec2};

@@ -1,14 +1,14 @@
 //! World-level primitives.
 //!
-//! At v0 this module is intentionally small: just the math/color primitives
-//! used by other modules. The hierarchical spatial graph from ADR 0007
-//! (district → building → floor → room → zone) lands here in a later pass.
+//! At v0 this module holds spatial schema (`Vec2`, `Rect2`), the world
+//! graph types (ADR 0007 — landed in a later sub-task of the spatial
+//! pass), and the cross-cutting `Color` helper used by agent appearance.
+
+mod types;
+
+pub use types::{Rect2, Vec2};
 
 use serde::{Deserialize, Serialize};
-
-/// 2D position vector, re-exported from `glam`. Used for in-leaf-area positions
-/// (snapped to a 0.5m grid for object alignment per ADR 0007).
-pub use glam::Vec2;
 
 /// 24-bit RGB color. No alpha, no HDR — appearance is pure 8-bit RGB at v0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
