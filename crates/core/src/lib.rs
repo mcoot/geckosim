@@ -16,9 +16,9 @@ pub mod world;
 
 // Convenience re-exports of the most-used public types.
 pub use ids::{
-    AccessoryId, AdvertisementId, AgentId, BuildingId, BusinessId, CrimeIncidentId, EmploymentId,
-    HouseholdId, HousingId, LeafAreaId, MemoryEntryId, ObjectId, ObjectTypeId, OwnerRef,
-    PromotedEventId,
+    AccessoryId, AdvertisementId, AgentId, BuildingId, BusinessId, CrimeIncidentId, DistrictId,
+    EmploymentId, FloorId, HouseholdId, HousingId, LeafAreaId, MemoryEntryId, ObjectId,
+    ObjectTypeId, OwnerRef, PromotedEventId,
 };
 pub use agent::{Accessory, AccessoryCatalog, AccessorySlot};
 pub use decision::{CurrentAction, RecentActionsRing, IDLE_DURATION_TICKS};
@@ -27,4 +27,6 @@ pub use rng::PrngState;
 pub use sim::{ContentBundle, Sim, TickReport};
 pub use snapshot::{AgentSnapshot, CurrentActionView, Snapshot};
 pub use time::{CurrentTick, Tick};
-pub use world::{Color, Rect2, Vec2};
+pub use world::{
+    Building, Color, District, Floor, LeafArea, LeafKind, OutdoorZoneKind, Rect2, Vec2, WorldGraph,
+};

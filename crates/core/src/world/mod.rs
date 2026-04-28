@@ -1,12 +1,16 @@
 //! World-level primitives.
 //!
 //! At v0 this module holds spatial schema (`Vec2`, `Rect2`), the world
-//! graph types (ADR 0007 — landed in a later sub-task of the spatial
-//! pass), and the cross-cutting `Color` helper used by agent appearance.
+//! graph types (ADR 0007), and the cross-cutting `Color` helper used by
+//! agent appearance.
 
+mod graph;
 mod types;
 
-pub use types::{Rect2, Vec2};
+pub use graph::WorldGraph;
+pub use types::{
+    Building, District, Floor, LeafArea, LeafKind, OutdoorZoneKind, Rect2, Vec2,
+};
 
 use serde::{Deserialize, Serialize};
 

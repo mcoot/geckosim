@@ -38,6 +38,8 @@ id_newtype!(AgentId);
 id_newtype!(ObjectId);
 id_newtype!(ObjectTypeId);
 id_newtype!(BuildingId);
+id_newtype!(FloorId);
+id_newtype!(DistrictId);
 id_newtype!(LeafAreaId);
 id_newtype!(HousingId);
 id_newtype!(EmploymentId);
