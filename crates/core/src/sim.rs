@@ -224,6 +224,7 @@ impl Sim {
                 let identity = entity_ref.get::<Identity>()?;
                 let needs = entity_ref.get::<Needs>()?;
                 let mood = entity_ref.get::<Mood>()?;
+                let personality = entity_ref.get::<Personality>().copied().unwrap_or_default();
                 let current_action = entity_ref
                     .get::<CurrentAction>()
                     .and_then(|c| c.0.as_ref())
@@ -233,6 +234,7 @@ impl Sim {
                     name: identity.name.clone(),
                     needs: *needs,
                     mood: *mood,
+                    personality,
                     current_action,
                 })
             })

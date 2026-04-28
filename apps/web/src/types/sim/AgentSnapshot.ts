@@ -3,10 +3,11 @@ import type { AgentId } from "./AgentId";
 import type { CurrentActionView } from "./CurrentActionView";
 import type { Mood } from "./Mood";
 import type { Needs } from "./Needs";
+import type { Personality } from "./Personality";
 
 /**
  * Per-agent snapshot row. Holds the slice of state this pass exposes;
  * other groupings (Personality, Memory, Spatial, …) extend this type as
  * their first consumer system lands.
  */
-export type AgentSnapshot = { id: AgentId, name: string, needs: Needs, mood: Mood, current_action: CurrentActionView | null, };
+export type AgentSnapshot = { id: AgentId, name: string, needs: Needs, mood: Mood, personality: Personality, current_action: CurrentActionView | null, };

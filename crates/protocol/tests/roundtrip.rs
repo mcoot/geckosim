@@ -1,7 +1,7 @@
 //! Serde roundtrip every wire type. Locks the JSON-on-the-wire format
 //! against accidental drift.
 
-use gecko_sim_core::agent::{Mood, Needs};
+use gecko_sim_core::agent::{Mood, Needs, Personality};
 use gecko_sim_core::ids::AgentId;
 use gecko_sim_core::{AgentSnapshot, Snapshot};
 use gecko_sim_protocol::{
@@ -20,6 +20,7 @@ fn sample_snapshot_with_agents(count: usize) -> Snapshot {
             name: names.get(i).copied().unwrap_or("Agent").to_string(),
             needs: Needs::full(),
             mood: Mood::neutral(),
+            personality: Personality::default(),
             current_action: None,
         })
         .collect();
@@ -145,10 +146,33 @@ fn agent_snapshot_with_current_action_roundtrips() {
             name: "Alice".to_string(),
             needs: Needs::full(),
             mood: Mood::neutral(),
+            personality: Personality::default(),
             current_action: Some(CurrentActionView {
                 display_name: "Eat snack".to_string(),
                 fraction_complete: 0.5,
             }),
+        }],
+    };
+    roundtrip(&snap);
+}
+
+#[test]
+fn agent_snapshot_with_personality_roundtrips() {
+    let snap = Snapshot {
+        tick: 11,
+        agents: vec![AgentSnapshot {
+            id: AgentId::new(0),
+            name: "Alice".to_string(),
+            needs: Needs::full(),
+            mood: Mood::neutral(),
+            personality: Personality {
+                openness: 0.4,
+                conscientiousness: -0.3,
+                extraversion: 0.7,
+                agreeableness: -0.5,
+                neuroticism: 0.1,
+            },
+            current_action: None,
         }],
     };
     roundtrip(&snap);

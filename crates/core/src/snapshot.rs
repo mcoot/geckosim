@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::agent::{Mood, Needs};
+use crate::agent::{Mood, Needs, Personality};
 use crate::ids::AgentId;
 
 /// Lossy projection of `CommittedAction` for the wire. Carries enough for
@@ -58,6 +58,7 @@ pub struct AgentSnapshot {
     pub name: String,
     pub needs: Needs,
     pub mood: Mood,
+    pub personality: Personality,
     pub current_action: Option<CurrentActionView>,
 }
 
