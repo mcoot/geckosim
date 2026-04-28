@@ -12,7 +12,7 @@
 use bevy_ecs::system::{Query, Res};
 
 use crate::agent::{Mood, Needs};
-use crate::decision::{ActionRef, CurrentAction, RecentActionEntry, RecentActionsRing};
+use crate::decision::{ActionRef, CurrentAction, Phase, RecentActionEntry, RecentActionsRing};
 use crate::ids::{AdvertisementId, ObjectId};
 use crate::object::{Advertisement, ObjectCatalog, SmartObject};
 use crate::systems::decision::effects::{apply as apply_effect, EffectTarget};
@@ -43,7 +43,15 @@ pub(crate) fn execute(
         let Some(action) = &current.0 else {
             continue;
         };
-        if current_tick.0 < action.expected_end_tick {
+        // Walking actions have no end tick yet — wait for movement::walk
+        // to flip the phase.
+        if action.phase != Phase::Performing {
+            continue;
+        }
+        let Some(end_tick) = action.expected_end_tick else {
+            continue;
+        };
+        if current_tick.0 < end_tick {
             continue;
         }
 
@@ -180,9 +188,10 @@ mod tests {
                 ad: AdvertisementId::new(1),
             },
             started_tick: 0,
-            expected_end_tick: 10,
+            expected_end_tick: Some(10),
             phase: Phase::Performing,
             target_position: None,
+            perform_duration_ticks: 10,
         };
         let (mut world, agent) = build_world(
             Needs {
@@ -216,9 +225,10 @@ mod tests {
                 ad: AdvertisementId::new(1),
             },
             started_tick: 0,
-            expected_end_tick: 10,
+            expected_end_tick: Some(10),
             phase: Phase::Performing,
             target_position: None,
+            perform_duration_ticks: 10,
         };
         let (mut world, agent) = build_world(
             Needs {
@@ -243,9 +253,10 @@ mod tests {
         let action = CommittedAction {
             action: ActionRef::SelfAction(SelfActionKind::Idle),
             started_tick: 0,
-            expected_end_tick: 5,
+            expected_end_tick: Some(5),
             phase: Phase::Performing,
             target_position: None,
+            perform_duration_ticks: 5,
         };
         let (mut world, agent) = build_world(Needs::full(), Some(action), 5);
         let mut schedule = Schedule::default();

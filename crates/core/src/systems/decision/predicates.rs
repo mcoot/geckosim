@@ -10,13 +10,16 @@
 //!   so any ad referencing them is filtered out).
 
 use crate::agent::{Need, Needs};
-use crate::object::{Op, Predicate, StateMap, StateValue};
+use crate::ids::LeafAreaId;
+use crate::object::{Op, Predicate, SpatialReq, StateMap, StateValue};
 
 /// Read-only context for predicate evaluation. Carries everything an
 /// `evaluate(...)` call might need from the agent + object.
 pub struct EvalContext<'a> {
     pub needs: &'a Needs,
+    pub agent_leaf: LeafAreaId,
     pub object_state: &'a StateMap,
+    pub object_leaf: LeafAreaId,
 }
 
 /// Evaluate a single predicate against the agent and (if applicable) the
@@ -33,7 +36,9 @@ pub fn evaluate(predicate: &Predicate, ctx: &EvalContext<'_>) -> bool {
             .object_state
             .get(key)
             .is_some_and(|actual| compare_state_value(actual, *op, expected)),
-        Predicate::Spatial(_) => true,
+        Predicate::Spatial(SpatialReq::SameLeafArea) => ctx.agent_leaf == ctx.object_leaf,
+        // AdjacentArea / KnownPlace placeholders — wired in a later pass.
+        Predicate::Spatial(SpatialReq::AdjacentArea | SpatialReq::KnownPlace) => true,
         // v0: missing systems → predicate fails → ad filtered out.
         Predicate::AgentSkill(_, _, _)
         | Predicate::AgentInventory(_, _, _)
@@ -96,6 +101,7 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::agent::{Need, Needs};
+    use crate::ids::LeafAreaId;
     use crate::object::{Op, Predicate, SpatialReq, StateValue};
     use crate::systems::decision::predicates::{evaluate, EvalContext};
 
@@ -106,7 +112,9 @@ mod tests {
         let leaked: &'static HashMap<String, StateValue> = Box::leak(Box::new(HashMap::new()));
         EvalContext {
             needs: Box::leak(Box::new(needs)),
+            agent_leaf: LeafAreaId::new(0),
             object_state: leaked,
+            object_leaf: LeafAreaId::new(0),
         }
     }
 
@@ -138,7 +146,9 @@ mod tests {
         let leaked: &'static HashMap<String, StateValue> = Box::leak(Box::new(state));
         let ctx = EvalContext {
             needs: Box::leak(Box::new(Needs::full())),
+            agent_leaf: LeafAreaId::new(0),
             object_state: leaked,
+            object_leaf: LeafAreaId::new(0),
         };
         let pred = Predicate::ObjectState("stocked".to_string(), Op::Eq, StateValue::Bool(true));
         assert!(evaluate(&pred, &ctx));
@@ -152,13 +162,27 @@ mod tests {
     }
 
     #[test]
-    fn spatial_always_passes() {
+    fn spatial_same_leaf_passes_when_leaves_match() {
+        // ctx_with_needs builds agent_leaf == object_leaf == 0.
         let ctx = ctx_with_needs(Needs::full());
-        for req in [
-            SpatialReq::SameLeafArea,
-            SpatialReq::AdjacentArea,
-            SpatialReq::KnownPlace,
-        ] {
+        assert!(evaluate(&Predicate::Spatial(SpatialReq::SameLeafArea), &ctx));
+    }
+
+    #[test]
+    fn spatial_same_leaf_fails_when_leaves_differ() {
+        let ctx = EvalContext {
+            needs: Box::leak(Box::new(Needs::full())),
+            agent_leaf: LeafAreaId::new(1),
+            object_state: Box::leak(Box::new(HashMap::new())),
+            object_leaf: LeafAreaId::new(2),
+        };
+        assert!(!evaluate(&Predicate::Spatial(SpatialReq::SameLeafArea), &ctx));
+    }
+
+    #[test]
+    fn spatial_adjacent_and_known_still_pass_at_v0() {
+        let ctx = ctx_with_needs(Needs::full());
+        for req in [SpatialReq::AdjacentArea, SpatialReq::KnownPlace] {
             assert!(evaluate(&Predicate::Spatial(req), &ctx));
         }
     }

@@ -8,7 +8,7 @@
 use bevy_ecs::system::{Query, Res, ResMut};
 use rand::Rng;
 
-use crate::agent::{Mood, Needs, Personality};
+use crate::agent::{Mood, Needs, Personality, Position};
 use crate::decision::{
     ActionRef, CommittedAction, CurrentAction, IDLE_DURATION_TICKS, Phase, RecentActionsRing,
     SelfActionKind,
@@ -20,7 +20,9 @@ use crate::systems::decision::predicates::{EvalContext, evaluate};
 use crate::systems::decision::scoring::{
     base_utility, mood_modifier, personality_modifier, recency_penalty, weighted_pick,
 };
+use crate::systems::movement::ARRIVE_EPSILON;
 use crate::time::CurrentTick;
+use crate::world::Vec2;
 
 /// Pick the top-N highest-scoring candidates before weighted-pick.
 const TOP_N: usize = 3;
@@ -45,6 +47,7 @@ pub(crate) fn decide(
         &Needs,
         &Mood,
         &Personality,
+        &Position,
         &RecentActionsRing,
         &mut CurrentAction,
     )>,
@@ -52,7 +55,7 @@ pub(crate) fn decide(
     // PrngState wraps Pcg64Mcg in a tuple struct; reach into the inner
     // RNG (which implements rand::Rng via the blanket impl on RngCore).
     let prng = &mut sim_rng.0.0;
-    for (needs, mood, personality, recent_ring, mut current) in &mut agents {
+    for (needs, mood, personality, position, recent_ring, mut current) in &mut agents {
         if current.0.is_some() {
             continue;
         }
@@ -60,6 +63,7 @@ pub(crate) fn decide(
             needs,
             mood,
             personality,
+            position,
             recent_ring,
             &catalog,
             &objects,
@@ -75,6 +79,7 @@ fn pick_next_action<R: Rng + ?Sized>(
     needs: &Needs,
     mood: &Mood,
     personality: &Personality,
+    position: &Position,
     recent_ring: &RecentActionsRing,
     catalog: &ObjectCatalog,
     objects: &Query<&SmartObject>,
@@ -90,7 +95,9 @@ fn pick_next_action<R: Rng + ?Sized>(
         for ad in &object_type.advertisements {
             let ctx = EvalContext {
                 needs,
+                agent_leaf: position.leaf,
                 object_state: &object.state,
+                object_leaf: object.location,
             };
             if !ad.preconditions.iter().all(|p| evaluate(p, &ctx)) {
                 continue;
@@ -116,9 +123,10 @@ fn pick_next_action<R: Rng + ?Sized>(
         return CommittedAction {
             action: ActionRef::SelfAction(SelfActionKind::Idle),
             started_tick: current_tick,
-            expected_end_tick: current_tick + u64::from(IDLE_DURATION_TICKS),
+            expected_end_tick: Some(current_tick + u64::from(IDLE_DURATION_TICKS)),
             phase: Phase::Performing,
             target_position: None,
+            perform_duration_ticks: IDLE_DURATION_TICKS,
         };
     }
 
@@ -129,15 +137,33 @@ fn pick_next_action<R: Rng + ?Sized>(
     let picked_idx = weighted_pick(&weights, prng).expect("non-empty after early return");
     let (object_id, _type_id, ad_id, duration_ticks, _score) = scored[picked_idx];
 
+    let target_pos = objects
+        .iter()
+        .find(|o| o.id == object_id)
+        .map_or(Vec2::ZERO, |o| o.position);
+    let dx = target_pos.x - position.pos.x;
+    let dy = target_pos.y - position.pos.y;
+    let already_there = (dx * dx + dy * dy) <= ARRIVE_EPSILON * ARRIVE_EPSILON;
+
+    let (phase, expected_end_tick) = if already_there {
+        (
+            Phase::Performing,
+            Some(current_tick + u64::from(duration_ticks)),
+        )
+    } else {
+        (Phase::Walking, None)
+    };
+
     CommittedAction {
         action: ActionRef::Object {
             object: object_id,
             ad: ad_id,
         },
         started_tick: current_tick,
-        expected_end_tick: current_tick + u64::from(duration_ticks),
-        phase: Phase::Performing,
-        target_position: None,
+        expected_end_tick,
+        phase,
+        target_position: Some(target_pos),
+        perform_duration_ticks: duration_ticks,
     }
 }
 
@@ -165,7 +191,7 @@ mod tests {
     use bevy_ecs::schedule::Schedule;
     use bevy_ecs::world::World;
 
-    use crate::agent::{Mood, Need, Needs, Personality};
+    use crate::agent::{Mood, Need, Needs, Personality, Position};
     use crate::decision::{
         ActionRef, CurrentAction, IDLE_DURATION_TICKS, Phase, RecentActionsRing, SelfActionKind,
     };
@@ -229,6 +255,10 @@ mod tests {
                 agent_needs,
                 Mood::neutral(),
                 Personality::default(),
+                Position {
+                    leaf: LeafAreaId::new(0),
+                    pos: Vec2::ZERO,
+                },
                 CurrentAction::default(),
                 RecentActionsRing::default(),
             ))
@@ -256,8 +286,11 @@ mod tests {
             ActionRef::SelfAction(_) => panic!("expected Object action"),
         }
         assert_eq!(action.started_tick, 0);
-        assert_eq!(action.expected_end_tick, 10); // duration_ticks = 10
+        // Agent at (0,0), fridge at (0,0) → already there → Performing
+        // with duration_ticks = 10 → expected_end_tick = Some(10).
+        assert_eq!(action.expected_end_tick, Some(10));
         assert_eq!(action.phase, Phase::Performing);
+        assert_eq!(action.perform_duration_ticks, 10);
     }
 
     #[test]
@@ -278,7 +311,7 @@ mod tests {
                 panic!("expected SelfAction(Idle), got {:?}", action.action)
             }
         }
-        assert_eq!(action.expected_end_tick, u64::from(IDLE_DURATION_TICKS));
+        assert_eq!(action.expected_end_tick, Some(u64::from(IDLE_DURATION_TICKS)));
     }
 
     #[test]
@@ -294,9 +327,10 @@ mod tests {
             .0 = Some(crate::decision::CommittedAction {
                 action: ActionRef::SelfAction(SelfActionKind::Wait),
                 started_tick: 0,
-                expected_end_tick: 100,
+                expected_end_tick: Some(100),
                 phase: Phase::Performing,
                 target_position: None,
+                perform_duration_ticks: 100,
             });
 
         let mut schedule = Schedule::default();

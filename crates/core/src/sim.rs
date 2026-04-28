@@ -76,6 +76,7 @@ impl Sim {
                 systems::needs::decay,
                 systems::mood::update,
                 systems::decision::execute::execute,
+                systems::movement::walk,
                 systems::decision::decide::decide,
             )
                 .chain(),
@@ -297,11 +298,16 @@ fn project_current_action(
     current_tick: u64,
     sim: &Sim,
 ) -> Option<crate::snapshot::CurrentActionView> {
-    let duration = action
-        .expected_end_tick
-        .saturating_sub(action.started_tick) as f32;
-    let elapsed = current_tick.saturating_sub(action.started_tick) as f32;
-    let fraction_complete = if duration > 0.0 {
+    // While Walking, expected_end_tick is None and the perform clock
+    // hasn't started — show 0%. Once Performing, fraction is elapsed /
+    // perform_duration_ticks.
+    let fraction_complete = if action.phase == crate::decision::Phase::Performing
+        && action.perform_duration_ticks > 0
+    {
+        let elapsed = current_tick.saturating_sub(action.started_tick) as f32;
+        let duration = f32::from(u16::try_from(action.perform_duration_ticks).unwrap_or(u16::MAX));
+        // u16 cap is generous: every v0 ad's duration_ticks is ≤ a few
+        // hundred. Larger values just clamp to 1.0 below.
         (elapsed / duration).clamp(0.0, 1.0)
     } else {
         0.0

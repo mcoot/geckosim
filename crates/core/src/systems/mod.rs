@@ -10,6 +10,7 @@
 //! Plus cross-cutting:
 //!   - `decision`      utility-AI scoring + commit + execute (per ADR 0004)  ← landed
 
-pub mod needs;
-pub mod mood;
 pub mod decision;
+pub mod mood;
+pub mod movement;
+pub mod needs;

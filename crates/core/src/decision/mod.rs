@@ -7,6 +7,11 @@ use crate::ids::{AdvertisementId, ObjectId, ObjectTypeId};
 use crate::world::Vec2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
+)]
 pub enum Phase {
     Walking,
     Performing,
@@ -38,9 +43,17 @@ pub enum ActionRef {
 pub struct CommittedAction {
     pub action: ActionRef,
     pub started_tick: u64,
-    pub expected_end_tick: u64,
+    /// `Some(t)` once the agent is `Performing` — the tick at which the
+    /// action's effects apply. `None` while `Walking`: the perform end
+    /// tick is unknown until arrival, computed by `movement::walk` when
+    /// it transitions phase.
+    pub expected_end_tick: Option<u64>,
     pub phase: Phase,
     pub target_position: Option<Vec2>,
+    /// Duration of the perform phase, in ticks. Set at `decide` time and
+    /// frozen through `Walking` so `movement::walk` can compute
+    /// `expected_end_tick` on arrival.
+    pub perform_duration_ticks: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
