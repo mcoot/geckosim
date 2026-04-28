@@ -186,7 +186,6 @@ impl Personality {
     /// `[-1, 1]^5` per ADR 0011's "roughly uniform, centered on zero"
     /// default. Five draws from the supplied RNG; deterministic for a
     /// fixed seed.
-    #[allow(dead_code, reason = "called by spawn_test_agent_with_needs in Task 2")]
     pub fn sample<R: rand::Rng + ?Sized>(rng: &mut R) -> Self {
         Self {
             openness: rng.random_range(-1.0..=1.0),

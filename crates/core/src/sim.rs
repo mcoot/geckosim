@@ -131,11 +131,18 @@ impl Sim {
     }
 
     /// Spawn a fresh agent with explicit initial needs, neutral mood,
-    /// default personality, and decision-runtime components (no current
+    /// a sampled personality, and decision-runtime components (no current
     /// action, empty recent-actions ring). Test-only entry point.
+    ///
+    /// Personality is sampled from the world's `SimRngResource` so spawn
+    /// order is deterministic from the seed (per ADR 0008).
     pub fn spawn_test_agent_with_needs(&mut self, name: &str, needs: Needs) -> AgentId {
         let id = AgentId::new(self.next_agent_id);
         self.next_agent_id += 1;
+        let personality = {
+            let mut rng = self.world.resource_mut::<SimRngResource>();
+            Personality::sample(&mut rng.0.0)
+        };
         self.world.spawn((
             Identity {
                 id,
@@ -143,7 +150,7 @@ impl Sim {
             },
             needs,
             Mood::neutral(),
-            Personality::default(),
+            personality,
             CurrentAction::default(),
             RecentActionsRing::default(),
         ));
