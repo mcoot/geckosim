@@ -51,14 +51,6 @@ id_newtype!(AccessoryId);
 id_newtype!(AdvertisementId);
 id_newtype!(PromotedEventId);
 
-impl LeafAreaId {
-    /// v0 stub: every agent and smart-object instance lives in this single
-    /// implicit leaf area until the spatial pass introduces a real world
-    /// graph (ADR 0007). The decision-runtime's spatial predicate evaluator
-    /// returns `true` for all `Predicate::Spatial(_)` variants at v0.
-    pub const DEFAULT: Self = Self::new(0);
-}
-
 /// An owner reference for entities that can be owned by an agent, household, or business
 /// (e.g. a fridge belongs to a household; a register belongs to a business).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

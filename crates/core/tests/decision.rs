@@ -4,7 +4,6 @@
 mod common;
 
 use gecko_sim_core::agent::Needs;
-use gecko_sim_core::ids::LeafAreaId;
 use gecko_sim_core::{Sim, Vec2};
 
 #[test]
@@ -17,7 +16,8 @@ fn agent_eats_from_fridge_when_hungry() {
             ..Needs::full()
         },
     );
-    sim.spawn_one_of_each_object_type(LeafAreaId::DEFAULT, Vec2::ZERO);
+    let leaf = sim.world_graph().default_spawn_leaf;
+    sim.spawn_one_of_each_object_type(leaf, Vec2::ZERO);
 
     // The fridge ad takes 10 ticks. The first tick decides; ticks 2-11
     // execute; tick 11 completes (since started_tick=1 and duration=10

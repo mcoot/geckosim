@@ -218,7 +218,7 @@ mod tests {
         world.spawn(SmartObject {
             id: ObjectId::new(0),
             type_id: ObjectTypeId::new(1),
-            location: LeafAreaId::DEFAULT,
+            location: LeafAreaId::new(0),
             position: Vec2::ZERO,
             owner: None,
             state,

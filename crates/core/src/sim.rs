@@ -10,7 +10,9 @@ use std::collections::HashMap;
 use bevy_ecs::schedule::{IntoScheduleConfigs, Schedule};
 use bevy_ecs::world::World;
 
-use crate::agent::{Accessory, AccessoryCatalog, Identity, Mood, Needs, Personality};
+use crate::agent::{
+    Accessory, AccessoryCatalog, Facing, Identity, Mood, Needs, Personality, Position,
+};
 use crate::decision::{CurrentAction, RecentActionsRing};
 use crate::ids::{AccessoryId, AgentId, LeafAreaId, ObjectId, ObjectTypeId};
 use crate::object::{ObjectCatalog, ObjectType, SmartObject};
@@ -18,7 +20,7 @@ use crate::rng::PrngState;
 use crate::snapshot::{AgentSnapshot, Snapshot};
 use crate::systems;
 use crate::time::CurrentTick;
-use crate::world::Vec2;
+use crate::world::{Vec2, WorldGraph};
 
 /// Catalog data passed into `Sim::new`. Loaded from RON files by the
 /// `gecko-sim-content` crate; populated maps after a real load, empty maps
@@ -65,6 +67,7 @@ impl Sim {
             by_id: content.accessories,
         });
         world.insert_resource(SimRngResource(PrngState::from_seed(seed)));
+        world.insert_resource(WorldGraph::seed_v0());
         world.insert_resource(CurrentTick(0));
 
         let mut schedule = Schedule::default();
@@ -121,6 +124,16 @@ impl Sim {
             .expect("AccessoryCatalog resource is inserted in Sim::new")
     }
 
+    /// Borrow the world graph (ADR 0007). Inserted by `Sim::new` from
+    /// `WorldGraph::seed_v0()`; later content passes will swap in
+    /// content-loaded graphs.
+    #[must_use]
+    pub fn world_graph(&self) -> &WorldGraph {
+        self.world
+            .get_resource::<WorldGraph>()
+            .expect("WorldGraph resource is inserted in Sim::new")
+    }
+
     /// Spawn a fresh agent at full needs and neutral mood with a
     /// monotonically allocated `AgentId`.
     ///
@@ -131,11 +144,15 @@ impl Sim {
     }
 
     /// Spawn a fresh agent with explicit initial needs, neutral mood,
-    /// a sampled personality, and decision-runtime components (no current
-    /// action, empty recent-actions ring). Test-only entry point.
+    /// a sampled personality, a `Position` at the world graph's
+    /// `default_spawn_leaf` (offset deterministically by `next_agent_id`
+    /// along +x), `Facing::default()`, and decision-runtime components
+    /// (no current action, empty recent-actions ring). Test-only entry.
     ///
     /// Personality is sampled from the world's `SimRngResource` so spawn
-    /// order is deterministic from the seed (per ADR 0008).
+    /// order is deterministic from the seed (per ADR 0008). The spawn
+    /// offset is structural (no RNG) so personality stays the only RNG
+    /// draw per spawn.
     pub fn spawn_test_agent_with_needs(&mut self, name: &str, needs: Needs) -> AgentId {
         let id = AgentId::new(self.next_agent_id);
         self.next_agent_id += 1;
@@ -143,6 +160,12 @@ impl Sim {
             let mut rng = self.world.resource_mut::<SimRngResource>();
             Personality::sample(&mut rng.0.0)
         };
+        let spawn_leaf = self.world.resource::<WorldGraph>().default_spawn_leaf;
+        let position = Position {
+            leaf: spawn_leaf,
+            pos: spawn_offset(id.raw()),
+        };
+        let facing = Facing::default();
         self.world.spawn((
             Identity {
                 id,
@@ -151,6 +174,8 @@ impl Sim {
             needs,
             Mood::neutral(),
             personality,
+            position,
+            facing,
             CurrentAction::default(),
             RecentActionsRing::default(),
         ));
@@ -245,6 +270,17 @@ impl Sim {
             agents,
         }
     }
+}
+
+/// Deterministic spawn-offset grid for v0 spawn helpers — agents land
+/// 1m apart along the +x axis. Avoids the RNG so personality sampling
+/// stays the only RNG draw per spawn.
+#[allow(
+    clippy::cast_precision_loss,
+    reason = "v0 agent counts (≤ thousands) sit comfortably below f32 precision limits"
+)]
+fn spawn_offset(agent_index: u64) -> Vec2 {
+    Vec2::new(agent_index as f32, 0.0)
 }
 
 /// Build a `CurrentActionView` from a `CommittedAction`. Looks up the

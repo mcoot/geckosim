@@ -4,6 +4,9 @@
 //! into ECS components (`Needs`, `Personality`, `Mood`, …) happens in the
 //! next pass when the live `Sim` API lands.
 
+pub mod spatial;
+pub use spatial::{Facing, Position};
+
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};

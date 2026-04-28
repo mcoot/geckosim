@@ -26,10 +26,8 @@ async fn main() -> anyhow::Result<()> {
     sim.spawn_test_agent("Alice");
     sim.spawn_test_agent("Bob");
     sim.spawn_test_agent("Charlie");
-    let object_ids = sim.spawn_one_of_each_object_type(
-        gecko_sim_core::ids::LeafAreaId::DEFAULT,
-        gecko_sim_core::Vec2::ZERO,
-    );
+    let spawn_leaf = sim.world_graph().default_spawn_leaf;
+    let object_ids = sim.spawn_one_of_each_object_type(spawn_leaf, gecko_sim_core::Vec2::ZERO);
     tracing::info!(object_count = object_ids.len(), "seed instances spawned");
 
     let initial = sim.snapshot();

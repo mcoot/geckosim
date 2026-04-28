@@ -3,7 +3,8 @@
 //! At v0:
 //! - `AgentNeed` and `ObjectState` evaluate against the agent's `Needs`
 //!   and the smart object's `StateMap` respectively.
-//! - `Spatial(_)` always passes (every entity lives in `LeafAreaId::DEFAULT`).
+//! - `Spatial(_)` always passes at this stage (the spatial pass wires the
+//!   `SameLeafArea` comparison in a later sub-task).
 //! - `AgentSkill`, `AgentInventory`, `AgentRelationship`, `MacroState`,
 //!   `TimeOfDay` always fail (the systems they depend on don't exist yet,
 //!   so any ad referencing them is filtered out).
