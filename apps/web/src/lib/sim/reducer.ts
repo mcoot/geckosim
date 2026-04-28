@@ -1,17 +1,20 @@
 import type { ServerMessage } from "@/types/sim/ServerMessage";
 import type { Snapshot } from "@/types/sim/Snapshot";
+import type { WorldLayout } from "@/types/sim/WorldLayout";
 
 export type SimStatus = "connecting" | "connected" | "disconnected";
 
 export type SimState = {
   status: SimStatus;
   snapshot: Snapshot | null;
+  world: WorldLayout | null;
   lastTick: number | null;
 };
 
 export const initialState: SimState = {
   status: "connecting",
   snapshot: null,
+  world: null,
   lastTick: null,
 };
 
@@ -43,6 +46,7 @@ function reduceServerMessage(state: SimState, msg: ServerMessage): SimState {
       return {
         status: "connected",
         snapshot: msg.snapshot,
+        world: msg.world,
         lastTick: msg.snapshot.tick,
       };
     case "snapshot":

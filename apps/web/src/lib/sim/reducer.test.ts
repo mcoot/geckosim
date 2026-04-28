@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { initialState, reduce, type SimState } from "./reducer";
 import type { Snapshot } from "@/types/sim/Snapshot";
+import type { WorldLayout } from "@/types/sim/WorldLayout";
 
 const fixtureSnapshot = (tick: number): Snapshot => ({
   tick,
@@ -17,9 +18,36 @@ const fixtureSnapshot = (tick: number): Snapshot => ({
         agreeableness: 0,
         neuroticism: 0,
       },
+      leaf: 1,
+      pos: { x: 0, y: 0 },
+      facing: { x: 1, y: 0 },
+      action_phase: null,
       current_action: null,
     },
   ],
+  objects: [],
+});
+
+const fixtureWorld = (): WorldLayout => ({
+  districts: [
+    {
+      id: 1,
+      display_name: "Old Town",
+      bbox: { min: { x: 0, y: 0 }, max: { x: 200, y: 200 } },
+    },
+  ],
+  buildings: [],
+  floors: [],
+  leaves: [
+    {
+      id: 1,
+      display_name: "Plaza",
+      kind: { OutdoorZone: "Plaza" },
+      bbox: { min: { x: 0, y: 0 }, max: { x: 80, y: 80 } },
+      adjacency: [],
+    },
+  ],
+  default_spawn_leaf: 1,
 });
 
 describe("reduce", () => {
@@ -33,12 +61,14 @@ describe("reduce", () => {
 
   it("init message transitions to connected and stores snapshot", () => {
     const snap = fixtureSnapshot(0);
+    const world = fixtureWorld();
     const next = reduce(initialState, {
       kind: "server-message",
-      msg: { type: "init", current_tick: 0, snapshot: snap },
+      msg: { type: "init", current_tick: 0, world, snapshot: snap },
     });
     expect(next.status).toBe("connected");
     expect(next.snapshot).toBe(snap);
+    expect(next.world).toBe(world);
     expect(next.lastTick).toBe(0);
   });
 
@@ -47,6 +77,7 @@ describe("reduce", () => {
     const connected: SimState = {
       status: "connected",
       snapshot: initSnap,
+      world: fixtureWorld(),
       lastTick: 0,
     };
     const newSnap = fixtureSnapshot(5);
@@ -57,6 +88,8 @@ describe("reduce", () => {
     expect(next.snapshot).toBe(newSnap);
     expect(next.lastTick).toBe(5);
     expect(next.status).toBe("connected");
+    // World retained from prior state.
+    expect(next.world).toBe(connected.world);
   });
 
   it("ws-close transitions to disconnected, retains snapshot", () => {
@@ -64,6 +97,7 @@ describe("reduce", () => {
     const connected: SimState = {
       status: "connected",
       snapshot: initSnap,
+      world: fixtureWorld(),
       lastTick: 3,
     };
     const next = reduce(connected, { kind: "ws-close" });
@@ -92,13 +126,18 @@ describe("reduce", () => {
             agreeableness: 0,
             neuroticism: 0,
           },
+          leaf: 1,
+          pos: { x: 0, y: 0 },
+          facing: { x: 1, y: 0 },
+          action_phase: null,
           current_action: null,
         },
       ],
+      objects: [],
     };
     const next = reduce(initialState, {
       kind: "server-message",
-      msg: { type: "init", current_tick: 10, snapshot: snap },
+      msg: { type: "init", current_tick: 10, world: fixtureWorld(), snapshot: snap },
     });
     expect(next.snapshot?.agents[0].mood).toEqual({
       valence: -0.5,
@@ -123,13 +162,18 @@ describe("reduce", () => {
             agreeableness: 0,
             neuroticism: 0,
           },
+          leaf: 1,
+          pos: { x: 0, y: 0 },
+          facing: { x: 1, y: 0 },
+          action_phase: "Performing",
           current_action: { display_name: "Eat snack", fraction_complete: 0.5 },
         },
       ],
+      objects: [],
     };
     const next = reduce(initialState, {
       kind: "server-message",
-      msg: { type: "init", current_tick: 10, snapshot: snap },
+      msg: { type: "init", current_tick: 10, world: fixtureWorld(), snapshot: snap },
     });
     expect(next.snapshot?.agents[0].current_action).toEqual({
       display_name: "Eat snack",
@@ -153,13 +197,18 @@ describe("reduce", () => {
             agreeableness: -0.5,
             neuroticism: 0.1,
           },
+          leaf: 1,
+          pos: { x: 0, y: 0 },
+          facing: { x: 1, y: 0 },
+          action_phase: null,
           current_action: null,
         },
       ],
+      objects: [],
     };
     const next = reduce(initialState, {
       kind: "server-message",
-      msg: { type: "init", current_tick: 5, snapshot: snap },
+      msg: { type: "init", current_tick: 5, world: fixtureWorld(), snapshot: snap },
     });
     expect(next.snapshot?.agents[0].personality).toEqual({
       openness: 0.4,
@@ -168,5 +217,53 @@ describe("reduce", () => {
       agreeableness: -0.5,
       neuroticism: 0.1,
     });
+  });
+
+  it("init message stores the world layout", () => {
+    const world = fixtureWorld();
+    const next = reduce(initialState, {
+      kind: "server-message",
+      msg: { type: "init", current_tick: 0, world, snapshot: fixtureSnapshot(0) },
+    });
+    expect(next.world).toEqual(world);
+    expect(next.world?.leaves.length).toBe(1);
+    expect(next.world?.default_spawn_leaf).toBe(1);
+  });
+
+  it("init message preserves spatial fields on the agent snapshot", () => {
+    const snap: Snapshot = {
+      tick: 7,
+      agents: [
+        {
+          id: 0,
+          name: "Alice",
+          needs: { hunger: 1, sleep: 1, social: 1, hygiene: 1, fun: 1, comfort: 1 },
+          mood: { valence: 0, arousal: 0, stress: 0 },
+          personality: {
+            openness: 0,
+            conscientiousness: 0,
+            extraversion: 0,
+            agreeableness: 0,
+            neuroticism: 0,
+          },
+          leaf: 3,
+          pos: { x: 12.5, y: -3.25 },
+          facing: { x: 0, y: 1 },
+          action_phase: "Walking",
+          current_action: null,
+        },
+      ],
+      objects: [
+        { id: 0, type_id: 1, leaf: 3, pos: { x: 15, y: 0 } },
+      ],
+    };
+    const next = reduce(initialState, {
+      kind: "server-message",
+      msg: { type: "init", current_tick: 7, world: fixtureWorld(), snapshot: snap },
+    });
+    expect(next.snapshot?.agents[0].leaf).toBe(3);
+    expect(next.snapshot?.agents[0].pos).toEqual({ x: 12.5, y: -3.25 });
+    expect(next.snapshot?.agents[0].action_phase).toBe("Walking");
+    expect(next.snapshot?.objects.length).toBe(1);
   });
 });

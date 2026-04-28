@@ -51,6 +51,9 @@ export function AgentList() {
               {PERSONALITY_LABELS[k]}
             </th>
           ))}
+          <th className="px-2 py-1 text-neutral-500" title="Leaf area : (x, y)">
+            Where
+          </th>
           <th className="px-2 py-1">Doing</th>
         </tr>
       </thead>
@@ -77,11 +80,14 @@ export function AgentList() {
                 {agent.personality[k].toFixed(2)}
               </td>
             ))}
+            <td className="px-2 py-1 font-mono text-neutral-500">
+              {agent.leaf}:({agent.pos.x.toFixed(1)},{agent.pos.y.toFixed(1)})
+            </td>
             <td className="px-2 py-1">
               {agent.current_action
-                ? `${agent.current_action.display_name} (${(
-                    agent.current_action.fraction_complete * 100
-                  ).toFixed(0)}%)`
+                ? `${agent.current_action.display_name}${
+                    agent.action_phase === "Walking" ? " (walking)" : ""
+                  } (${(agent.current_action.fraction_complete * 100).toFixed(0)}%)`
                 : "—"}
             </td>
           </tr>
