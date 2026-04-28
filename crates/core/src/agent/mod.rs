@@ -161,13 +161,17 @@ impl Needs {
 // ---------------------------------------------------------------------------
 
 /// Big Five personality components; each in `[-1, 1]`. Per ADR 0011.
-/// Doubles as the ECS component (lazy sharding). At v0 every agent gets
-/// `Personality::default()` (all zeros) until the personality system pass
-/// lands — until then `personality_modifier` in the score formula stays
-/// at 1.0.
+/// Doubles as the ECS component (lazy sharding). Sampled at agent spawn
+/// via `Personality::sample(rng)`; `Default` is retained for unit tests
+/// that build hand-crafted worlds and want zero personality.
 #[derive(
     bevy_ecs::component::Component,
     Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize,
+)]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
 )]
 pub struct Personality {
     pub openness: f32,
@@ -175,6 +179,23 @@ pub struct Personality {
     pub extraversion: f32,
     pub agreeableness: f32,
     pub neuroticism: f32,
+}
+
+impl Personality {
+    /// Sample a Big Five personality from the uniform distribution on
+    /// `[-1, 1]^5` per ADR 0011's "roughly uniform, centered on zero"
+    /// default. Five draws from the supplied RNG; deterministic for a
+    /// fixed seed.
+    #[allow(dead_code, reason = "called by spawn_test_agent_with_needs in Task 2")]
+    pub fn sample<R: rand::Rng + ?Sized>(rng: &mut R) -> Self {
+        Self {
+            openness: rng.random_range(-1.0..=1.0),
+            conscientiousness: rng.random_range(-1.0..=1.0),
+            extraversion: rng.random_range(-1.0..=1.0),
+            agreeableness: rng.random_range(-1.0..=1.0),
+            neuroticism: rng.random_range(-1.0..=1.0),
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -518,5 +539,43 @@ mod identity_component_tests {
         let id = world.get::<Identity>(entity).expect("Identity component present");
         assert_eq!(id.id, AgentId::new(7));
         assert_eq!(id.name, "Alice");
+    }
+}
+
+#[cfg(test)]
+mod personality_tests {
+    use super::Personality;
+    use rand::SeedableRng;
+
+    #[test]
+    fn sample_components_in_range() {
+        let mut rng = rand_pcg::Pcg64Mcg::seed_from_u64(0);
+        for _ in 0..1000 {
+            let p = Personality::sample(&mut rng);
+            for c in [
+                p.openness,
+                p.conscientiousness,
+                p.extraversion,
+                p.agreeableness,
+                p.neuroticism,
+            ] {
+                assert!((-1.0..=1.0).contains(&c), "out of range: {c}");
+            }
+        }
+    }
+
+    #[test]
+    fn same_seed_same_personality() {
+        let mut a = rand_pcg::Pcg64Mcg::seed_from_u64(42);
+        let mut b = rand_pcg::Pcg64Mcg::seed_from_u64(42);
+        assert_eq!(Personality::sample(&mut a), Personality::sample(&mut b));
+    }
+
+    #[test]
+    fn consecutive_samples_differ() {
+        let mut rng = rand_pcg::Pcg64Mcg::seed_from_u64(0);
+        let p1 = Personality::sample(&mut rng);
+        let p2 = Personality::sample(&mut rng);
+        assert_ne!(p1, p2);
     }
 }
