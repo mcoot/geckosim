@@ -8,7 +8,7 @@
 use std::time::Duration;
 
 use futures_util::{SinkExt, StreamExt};
-use gecko_sim_core::{ContentBundle, Sim, Snapshot};
+use gecko_sim_core::{ContentBundle, Sim, Snapshot, WorldLayout};
 use gecko_sim_host::{sim_driver, ws_server};
 use gecko_sim_protocol::{
     ClientMessage, PlayerInput, ServerMessage, WireFormat, PROTOCOL_VERSION,
@@ -64,6 +64,7 @@ async fn ws_handshake_and_pause_resume() {
     sim.spawn_test_agent("Alice");
     sim.spawn_test_agent("Bob");
     sim.spawn_test_agent("Charlie");
+    let world_layout = WorldLayout::from(sim.world_graph());
     let initial = sim.snapshot();
 
     // 2. Wire channels and bind a listener on an ephemeral port.
@@ -76,7 +77,12 @@ async fn ws_handshake_and_pause_resume() {
     let (snapshot_tx, snapshot_rx) = tokio::sync::watch::channel::<Snapshot>(initial);
 
     let driver = tokio::spawn(sim_driver::run(sim, input_rx, snapshot_tx));
-    let server = tokio::spawn(ws_server::run(listener, input_tx, snapshot_rx));
+    let server = tokio::spawn(ws_server::run(
+        listener,
+        input_tx,
+        snapshot_rx,
+        world_layout,
+    ));
 
     // Give the server a moment to start the accept loop.
     tokio::time::sleep(Duration::from_millis(50)).await;
@@ -108,14 +114,16 @@ async fn ws_handshake_and_pause_resume() {
         .await
         .expect("send ClientHello");
 
-    // 6. Server sends Init.
+    // 6. Server sends Init (carries world layout per ADR 0007).
     match next_server_msg(&mut rx).await {
         ServerMessage::Init {
             current_tick,
+            world,
             snapshot,
         } => {
             assert_eq!(current_tick, snapshot.tick);
             assert_eq!(snapshot.agents.len(), 3);
+            assert!(!world.leaves.is_empty(), "world.leaves must not be empty");
         }
         other => panic!("expected Init, got {other:?}"),
     }

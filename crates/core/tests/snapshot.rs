@@ -1,7 +1,7 @@
 //! Integration test: spawning agents and producing a deterministic snapshot.
 
 use gecko_sim_core::ids::AgentId;
-use gecko_sim_core::{ContentBundle, Sim};
+use gecko_sim_core::{ContentBundle, Sim, Vec2};
 
 #[test]
 #[expect(
@@ -21,6 +21,7 @@ fn snapshot_contains_spawned_agents_sorted_by_id() {
     let snap = sim.snapshot();
     assert_eq!(snap.tick, 0);
     assert_eq!(snap.agents.len(), 3);
+    assert!(snap.objects.is_empty());
 
     // Sorted by AgentId ascending.
     assert_eq!(snap.agents[0].id, AgentId::new(0));
@@ -32,4 +33,13 @@ fn snapshot_contains_spawned_agents_sorted_by_id() {
 
     assert_eq!(snap.agents[2].id, AgentId::new(2));
     assert_eq!(snap.agents[2].name, "Charlie");
+
+    // Spatial fields: every agent lives in default_spawn_leaf with a
+    // deterministic +x offset; no action committed yet at tick 0.
+    let spawn_leaf = sim.world_graph().default_spawn_leaf;
+    assert_eq!(snap.agents[0].leaf, spawn_leaf);
+    assert_eq!(snap.agents[0].pos, Vec2::ZERO);
+    assert_eq!(snap.agents[1].pos, Vec2::new(1.0, 0.0));
+    assert_eq!(snap.agents[2].pos, Vec2::new(2.0, 0.0));
+    assert!(snap.agents[0].action_phase.is_none());
 }

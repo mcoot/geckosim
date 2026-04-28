@@ -14,9 +14,10 @@
 //! client apply, with no sender attribution (v0).
 
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use futures_util::{SinkExt, StreamExt};
-use gecko_sim_core::Snapshot;
+use gecko_sim_core::{Snapshot, WorldLayout};
 use gecko_sim_protocol::{
     ClientMessage, PlayerInput, ServerMessage, WireFormat, PROTOCOL_VERSION,
 };
@@ -31,7 +32,9 @@ pub async fn run(
     listener: TcpListener,
     input_tx: mpsc::UnboundedSender<PlayerInput>,
     snapshot_rx: watch::Receiver<Snapshot>,
+    world: WorldLayout,
 ) {
+    let world = Arc::new(world);
     loop {
         let (stream, peer_addr) = match listener.accept().await {
             Ok(pair) => pair,
@@ -42,8 +45,11 @@ pub async fn run(
         };
         let input_tx = input_tx.clone();
         let snapshot_rx = snapshot_rx.clone();
+        let world = Arc::clone(&world);
         tokio::spawn(async move {
-            if let Err(e) = handle_connection(stream, peer_addr, input_tx, snapshot_rx).await {
+            if let Err(e) =
+                handle_connection(stream, peer_addr, input_tx, snapshot_rx, world).await
+            {
                 tracing::info!(%peer_addr, error = %e, "connection ended");
             }
         });
@@ -55,6 +61,7 @@ async fn handle_connection(
     peer_addr: SocketAddr,
     input_tx: mpsc::UnboundedSender<PlayerInput>,
     mut snapshot_rx: watch::Receiver<Snapshot>,
+    world: Arc<WorldLayout>,
 ) -> anyhow::Result<()> {
     tracing::info!(%peer_addr, "ws connection accepted");
     let ws = tokio_tungstenite::accept_async(stream).await?;
@@ -87,6 +94,7 @@ async fn handle_connection(
     let snap = snapshot_rx.borrow_and_update().clone();
     let init = ServerMessage::Init {
         current_tick: snap.tick,
+        world: (*world).clone(),
         snapshot: snap,
     };
     tx.send(WsMessage::Text(serde_json::to_string(&init)?)).await?;

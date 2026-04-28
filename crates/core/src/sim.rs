@@ -17,7 +17,7 @@ use crate::decision::{CurrentAction, RecentActionsRing};
 use crate::ids::{AccessoryId, AgentId, LeafAreaId, ObjectId, ObjectTypeId};
 use crate::object::{ObjectCatalog, ObjectType, SmartObject};
 use crate::rng::PrngState;
-use crate::snapshot::{AgentSnapshot, Snapshot};
+use crate::snapshot::{AgentSnapshot, ObjectSnapshot, Snapshot};
 use crate::systems;
 use crate::time::CurrentTick;
 use crate::world::{Vec2, WorldGraph};
@@ -240,7 +240,8 @@ impl Sim {
     }
 
     /// Capture the full sim state at the current tick. Agents are sorted
-    /// by `AgentId` ascending for determinism.
+    /// by `AgentId` ascending and objects by `ObjectId` ascending for
+    /// determinism (per ADR 0008).
     #[must_use]
     pub fn snapshot(&self) -> Snapshot {
         let mut agents: Vec<AgentSnapshot> = self
@@ -251,6 +252,15 @@ impl Sim {
                 let needs = entity_ref.get::<Needs>()?;
                 let mood = entity_ref.get::<Mood>()?;
                 let personality = entity_ref.get::<Personality>().copied().unwrap_or_default();
+                let position = entity_ref.get::<Position>().copied()?;
+                let facing = entity_ref
+                    .get::<Facing>()
+                    .copied()
+                    .unwrap_or_default();
+                let action_phase = entity_ref
+                    .get::<CurrentAction>()
+                    .and_then(|c| c.0.as_ref())
+                    .map(|a| a.phase);
                 let current_action = entity_ref
                     .get::<CurrentAction>()
                     .and_then(|c| c.0.as_ref())
@@ -261,14 +271,35 @@ impl Sim {
                     needs: *needs,
                     mood: *mood,
                     personality,
+                    leaf: position.leaf,
+                    pos: position.pos,
+                    facing: facing.dir,
+                    action_phase,
                     current_action,
                 })
             })
             .collect();
         agents.sort_by_key(|a| a.id);
+
+        let mut objects: Vec<ObjectSnapshot> = self
+            .world
+            .iter_entities()
+            .filter_map(|entity_ref| {
+                let o = entity_ref.get::<SmartObject>()?;
+                Some(ObjectSnapshot {
+                    id: o.id,
+                    type_id: o.type_id,
+                    leaf: o.location,
+                    pos: o.position,
+                })
+            })
+            .collect();
+        objects.sort_by_key(|o| o.id);
+
         Snapshot {
             tick: self.tick,
             agents,
+            objects,
         }
     }
 }

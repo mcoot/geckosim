@@ -25,8 +25,9 @@ pub use decision::{CurrentAction, RecentActionsRing, IDLE_DURATION_TICKS};
 pub use object::ObjectCatalog;
 pub use rng::PrngState;
 pub use sim::{ContentBundle, Sim, TickReport};
-pub use snapshot::{AgentSnapshot, CurrentActionView, Snapshot};
+pub use snapshot::{AgentSnapshot, CurrentActionView, ObjectSnapshot, Snapshot};
 pub use time::{CurrentTick, Tick};
 pub use world::{
     Building, Color, District, Floor, LeafArea, LeafKind, OutdoorZoneKind, Rect2, Vec2, WorldGraph,
+    WorldLayout,
 };

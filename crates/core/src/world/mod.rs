@@ -5,9 +5,11 @@
 //! agent appearance.
 
 mod graph;
+mod layout;
 mod types;
 
 pub use graph::WorldGraph;
+pub use layout::WorldLayout;
 pub use types::{
     Building, District, Floor, LeafArea, LeafKind, OutdoorZoneKind, Rect2, Vec2,
 };

@@ -12,7 +12,8 @@ export type CurrentActionView = {
  */
 display_name: string, 
 /**
- * Progress through the action's `duration_ticks`. `0.0` at start,
- * rises monotonically toward `1.0` at scheduled completion.
+ * Progress through the action's `perform_duration_ticks`. `0.0`
+ * while `Walking`; rises monotonically toward `1.0` while
+ * `Performing`.
  */
 fraction_complete: number, };

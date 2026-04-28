@@ -2,8 +2,8 @@
 //! against accidental drift.
 
 use gecko_sim_core::agent::{Mood, Needs, Personality};
-use gecko_sim_core::ids::AgentId;
-use gecko_sim_core::{AgentSnapshot, Snapshot};
+use gecko_sim_core::ids::{AgentId, LeafAreaId};
+use gecko_sim_core::{AgentSnapshot, Snapshot, Vec2, WorldGraph, WorldLayout};
 use gecko_sim_protocol::{
     ClientMessage, PlayerInput, ServerMessage, WireFormat, PROTOCOL_VERSION,
 };
@@ -12,6 +12,10 @@ fn sample_snapshot() -> Snapshot {
     sample_snapshot_with_agents(2)
 }
 
+#[allow(
+    clippy::cast_precision_loss,
+    reason = "fixture indices stay below the f32 precision threshold"
+)]
 fn sample_snapshot_with_agents(count: usize) -> Snapshot {
     let names = ["Alice", "Bob", "Carol", "Dave", "Eve"];
     let agents = (0..count)
@@ -21,10 +25,22 @@ fn sample_snapshot_with_agents(count: usize) -> Snapshot {
             needs: Needs::full(),
             mood: Mood::neutral(),
             personality: Personality::default(),
+            leaf: LeafAreaId::new(1),
+            pos: Vec2::new(i as f32, 0.0),
+            facing: Vec2::new(1.0, 0.0),
+            action_phase: None,
             current_action: None,
         })
         .collect();
-    Snapshot { tick: 7, agents }
+    Snapshot {
+        tick: 7,
+        agents,
+        objects: vec![],
+    }
+}
+
+fn sample_world_layout() -> WorldLayout {
+    WorldLayout::from(&WorldGraph::seed_v0())
 }
 
 fn roundtrip<T>(value: &T)
@@ -48,6 +64,7 @@ fn server_hello_roundtrips() {
 fn server_init_roundtrips() {
     roundtrip(&ServerMessage::Init {
         current_tick: 0,
+        world: sample_world_layout(),
         snapshot: sample_snapshot(),
     });
 }
@@ -147,11 +164,16 @@ fn agent_snapshot_with_current_action_roundtrips() {
             needs: Needs::full(),
             mood: Mood::neutral(),
             personality: Personality::default(),
+            leaf: LeafAreaId::new(1),
+            pos: Vec2::ZERO,
+            facing: Vec2::new(1.0, 0.0),
+            action_phase: Some(gecko_sim_core::decision::Phase::Performing),
             current_action: Some(CurrentActionView {
                 display_name: "Eat snack".to_string(),
                 fraction_complete: 0.5,
             }),
         }],
+        objects: vec![],
     };
     roundtrip(&snap);
 }
@@ -172,8 +194,48 @@ fn agent_snapshot_with_personality_roundtrips() {
                 agreeableness: -0.5,
                 neuroticism: 0.1,
             },
+            leaf: LeafAreaId::new(1),
+            pos: Vec2::ZERO,
+            facing: Vec2::new(1.0, 0.0),
+            action_phase: None,
             current_action: None,
+        }],
+        objects: vec![],
+    };
+    roundtrip(&snap);
+}
+
+#[test]
+fn agent_snapshot_with_spatial_fields_roundtrips() {
+    let snap = Snapshot {
+        tick: 12,
+        agents: vec![AgentSnapshot {
+            id: AgentId::new(0),
+            name: "Alice".to_string(),
+            needs: Needs::full(),
+            mood: Mood::neutral(),
+            personality: Personality::default(),
+            leaf: LeafAreaId::new(3),
+            pos: Vec2::new(12.5, -3.25),
+            facing: Vec2::new(0.0, 1.0),
+            action_phase: Some(gecko_sim_core::decision::Phase::Walking),
+            current_action: None,
+        }],
+        objects: vec![gecko_sim_core::ObjectSnapshot {
+            id: gecko_sim_core::ids::ObjectId::new(0),
+            type_id: gecko_sim_core::ids::ObjectTypeId::new(1),
+            leaf: LeafAreaId::new(3),
+            pos: Vec2::new(15.0, 0.0),
         }],
     };
     roundtrip(&snap);
+}
+
+#[test]
+fn init_with_world_layout_roundtrips() {
+    roundtrip(&ServerMessage::Init {
+        current_tick: 3,
+        world: sample_world_layout(),
+        snapshot: sample_snapshot(),
+    });
 }

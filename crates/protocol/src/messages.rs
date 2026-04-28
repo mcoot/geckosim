@@ -12,7 +12,7 @@
 //! `WireFormat` reserves the format-negotiation slot for later
 //! `MessagePack` / postcard expansion without a protocol version bump.
 
-use gecko_sim_core::Snapshot;
+use gecko_sim_core::{Snapshot, WorldLayout};
 use serde::{Deserialize, Serialize};
 
 /// Wire protocol version. Bump on incompatible changes; additive changes
@@ -50,6 +50,7 @@ pub enum ServerMessage {
     Init {
         #[cfg_attr(feature = "export-ts", ts(type = "number"))]
         current_tick: u64,
+        world: WorldLayout,
         snapshot: Snapshot,
     },
     /// Periodic sample stream payload.

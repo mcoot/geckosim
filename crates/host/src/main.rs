@@ -33,6 +33,8 @@ async fn main() -> anyhow::Result<()> {
     let initial = sim.snapshot();
     tracing::info!(agents = initial.agents.len(), "sim primed");
 
+    let world_layout = gecko_sim_core::WorldLayout::from(sim.world_graph());
+
     let addr = config::listen_addr()?;
     let listener = TcpListener::bind(addr).await?;
     let local_addr = listener.local_addr()?;
@@ -42,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
     let (snapshot_tx, snapshot_rx) = tokio::sync::watch::channel(initial);
 
     let driver = tokio::spawn(sim_driver::run(sim, input_rx, snapshot_tx));
-    let server = tokio::spawn(ws_server::run(listener, input_tx, snapshot_rx));
+    let server = tokio::spawn(ws_server::run(listener, input_tx, snapshot_rx, world_layout));
 
     tokio::signal::ctrl_c().await?;
     tracing::info!("ctrl-c received, shutting down");

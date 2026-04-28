@@ -1,15 +1,18 @@
 //! Snapshot type: a deterministic, by-value view of sim state at a tick.
 //!
-//! Agents are sorted by `AgentId` ascending so two `Sim` instances built
-//! from the same seed and same calls produce byte-equal `Snapshot`s.
-//! Serde derives let `Snapshot` ride directly on the wire (per ADR 0013
-//! and the WS transport v0 spec — wire types live in `protocol`, but the
-//! `Snapshot` shape itself is the schema-of-record from `core`).
+//! Agents are sorted by `AgentId` ascending and objects by `ObjectId`
+//! ascending so two `Sim` instances built from the same seed and same
+//! calls produce byte-equal `Snapshot`s. Serde derives let `Snapshot`
+//! ride directly on the wire (per ADR 0013 and the WS transport v0
+//! spec — wire types live in `protocol`, but the `Snapshot` shape
+//! itself is the schema-of-record from `core`).
 
 use serde::{Deserialize, Serialize};
 
 use crate::agent::{Mood, Needs, Personality};
-use crate::ids::AgentId;
+use crate::decision::Phase;
+use crate::ids::{AgentId, LeafAreaId, ObjectId, ObjectTypeId};
+use crate::world::Vec2;
 
 /// Lossy projection of `CommittedAction` for the wire. Carries enough for
 /// the frontend to render "Alice is doing X (50%)". The full
@@ -24,9 +27,28 @@ pub struct CurrentActionView {
     /// `Advertisement.display_name` for object-targeted actions, or
     /// `"Idle"` / `"Wait"` for self-actions.
     pub display_name: String,
-    /// Progress through the action's `duration_ticks`. `0.0` at start,
-    /// rises monotonically toward `1.0` at scheduled completion.
+    /// Progress through the action's `perform_duration_ticks`. `0.0`
+    /// while `Walking`; rises monotonically toward `1.0` while
+    /// `Performing`.
     pub fraction_complete: f32,
+}
+
+/// Per-instance smart-object row sent every snapshot. Carries the data
+/// the renderer needs to draw the object: id, type (for mesh lookup),
+/// leaf area, world-space position. Per-instance dynamic state
+/// (e.g. fridge open/closed) is deferred until any object actually has
+/// visible state — see the spatial-pass spec's deferred items.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "export-ts",
+    ts(export, export_to = "../../apps/web/src/types/sim/")
+)]
+pub struct ObjectSnapshot {
+    pub id: ObjectId,
+    pub type_id: ObjectTypeId,
+    pub leaf: LeafAreaId,
+    pub pos: Vec2,
 }
 
 /// Full sim state at a tick boundary. `PartialEq` is required by the
@@ -42,11 +64,12 @@ pub struct Snapshot {
     #[cfg_attr(feature = "export-ts", ts(type = "number"))]
     pub tick: u64,
     pub agents: Vec<AgentSnapshot>,
+    pub objects: Vec<ObjectSnapshot>,
 }
 
 /// Per-agent snapshot row. Holds the slice of state this pass exposes;
-/// other groupings (Personality, Memory, Spatial, …) extend this type as
-/// their first consumer system lands.
+/// other groupings (Memory, Skills, …) extend this type as their first
+/// consumer system lands.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
 #[cfg_attr(
@@ -59,12 +82,16 @@ pub struct AgentSnapshot {
     pub needs: Needs,
     pub mood: Mood,
     pub personality: Personality,
+    pub leaf: LeafAreaId,
+    pub pos: Vec2,
+    pub facing: Vec2,
+    pub action_phase: Option<Phase>,
     pub current_action: Option<CurrentActionView>,
 }
 
 #[cfg(test)]
 mod serde_derive_tests {
-    use super::{AgentSnapshot, CurrentActionView, Snapshot};
+    use super::{AgentSnapshot, CurrentActionView, ObjectSnapshot, Snapshot};
 
     fn assert_serialize<T: serde::Serialize>() {}
     fn assert_deserialize<T: serde::de::DeserializeOwned>() {}
@@ -75,6 +102,8 @@ mod serde_derive_tests {
         assert_deserialize::<Snapshot>();
         assert_serialize::<AgentSnapshot>();
         assert_deserialize::<AgentSnapshot>();
+        assert_serialize::<ObjectSnapshot>();
+        assert_deserialize::<ObjectSnapshot>();
         assert_serialize::<CurrentActionView>();
         assert_deserialize::<CurrentActionView>();
     }
