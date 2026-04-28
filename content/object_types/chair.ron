@@ -17,7 +17,7 @@ ObjectType(
                 need_weights: [(Comfort, 1.0)],
                 personality_weights: Personality(
                     openness: 0.0, conscientiousness: 0.0,
-                    extraversion: 0.0, agreeableness: 0.0, neuroticism: 0.0,
+                    extraversion: -0.2, agreeableness: 0.0, neuroticism: 0.0,
                 ),
                 situational_modifiers: [],
             ),
