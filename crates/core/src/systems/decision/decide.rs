@@ -25,7 +25,6 @@ use crate::systems::decision::scoring::{
 };
 use crate::systems::movement::ARRIVE_EPSILON;
 use crate::time::CurrentTick;
-use crate::world::WorldGraph;
 
 /// Pick the top-N highest-scoring candidates before weighted-pick.
 const TOP_N: usize = 3;
@@ -43,7 +42,6 @@ const NOISE_SCALE: f32 = 0.1;
 )]
 pub(crate) fn decide(
     catalog: Res<ObjectCatalog>,
-    world: Res<WorldGraph>,
     current_tick: Res<CurrentTick>,
     mut sim_rng: ResMut<SimRngResource>,
     objects: Query<&SmartObject>,
@@ -59,7 +57,7 @@ pub(crate) fn decide(
         )>,
     )>,
 ) {
-    let occupied = collect_occupied_spots(&agents.p0());
+    let mut occupied = collect_occupied_spots(&agents.p0());
     // PrngState wraps Pcg64Mcg in a tuple struct; reach into the inner
     // RNG (which implements rand::Rng via the blanket impl on RngCore).
     let prng = &mut sim_rng.0.0;
@@ -74,12 +72,14 @@ pub(crate) fn decide(
             position,
             recent_ring,
             &catalog,
-            &world,
             &objects,
             &occupied,
             current_tick.0,
             prng,
         );
+        if let (ActionRef::Object { object, .. }, Some(spot)) = (next.action, next.target_spot) {
+            occupied.insert(object, spot);
+        }
         current.0 = Some(next);
     }
 }
@@ -92,7 +92,6 @@ fn pick_next_action<R: Rng + ?Sized>(
     position: &Position,
     recent_ring: &RecentActionsRing,
     catalog: &ObjectCatalog,
-    world: &WorldGraph,
     objects: &Query<&SmartObject>,
     occupied: &OccupiedInteractionSpots,
     current_tick: u64,
@@ -121,9 +120,8 @@ fn pick_next_action<R: Rng + ?Sized>(
             if !ad.preconditions.iter().all(|p| evaluate(p, &ctx)) {
                 continue;
             }
-            let leaf_bbox = world.leaf(object.location).map(|leaf| leaf.bbox);
             let Some(target) =
-                resolve_interaction_target(object, object_type, position, occupied, leaf_bbox)
+                resolve_interaction_target(object, object_type, position, occupied, None)
             else {
                 continue;
             };
