@@ -14,5 +14,6 @@
 pub mod decide;
 pub mod effects;
 pub mod execute;
+pub(crate) mod interaction;
 pub mod predicates;
 pub mod scoring;
