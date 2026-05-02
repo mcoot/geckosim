@@ -9,7 +9,10 @@ export function Controls() {
   const disabled = state.status !== "connected";
 
   return (
-    <section className="flex flex-wrap items-center gap-2">
+    <section
+      className="flex flex-wrap items-center gap-2"
+      style={{ width: "calc(100vw - 3rem)", maxWidth: "100%" }}
+    >
       <button
         type="button"
         disabled={disabled}

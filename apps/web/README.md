@@ -1,9 +1,9 @@
 # apps/web — gecko-sim frontend
 
 Next.js 16 (App Router) client for the gecko-sim Rust host. Connects via
-WebSocket to `127.0.0.1:9001`, renders the live agent list, and exposes
-speed / pause controls. See ADR 0013 ("Frontend data flow and transport")
-for the wire contract.
+WebSocket to `127.0.0.1:9001`, renders the live world scene and agent list,
+and exposes speed / pause controls. See ADR 0013 ("Frontend data flow and
+transport") for the wire contract.
 
 ## Develop
 
@@ -53,13 +53,15 @@ what's committed.
 - `src/lib/sim/connection.tsx` — `<SimConnectionProvider>` owns the
   WebSocket lifecycle, exposes `useSimConnection()`.
 - `src/lib/sim/reducer.ts` — pure `(state, ServerMessage) -> state`.
-- `src/components/{ConnectionStatus,AgentList,Controls}.tsx` —
+- `src/components/{ConnectionStatus,AgentList,Controls,WorldScene}.tsx` —
   presentation components that subscribe via `useSimConnection()`.
+- `src/lib/world-scene/` — pure render-model projection, Three.js scene graph
+  adapter, and browser runtime for the world scene.
 - `src/types/sim/*.ts` — generated wire types. Do not edit.
 
 ## Out of scope at v0
 
-- Three.js / 3D rendering — a future "rendering" pass once `Snapshot`
-  carries position data.
+- Full free-camera UX, interpolation between snapshots, authored meshes /
+  textures, and click-to-inspect panels.
 - Auto-reconnect — close shows a "reload to reconnect" banner.
 - Catalog / save / load / inspection UI — future passes per ADR 0013.
