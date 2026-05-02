@@ -4,7 +4,9 @@
 use std::path::PathBuf;
 
 use gecko_sim_core::agent::Need;
-use gecko_sim_core::ids::{AccessoryId, AdvertisementId, ObjectTypeId};
+use gecko_sim_core::ids::{
+    AccessoryId, AdvertisementId, InteractionSpotId, ObjectTypeId,
+};
 use gecko_sim_core::object::StateKey;
 
 #[derive(Debug, thiserror::Error)]
@@ -74,6 +76,23 @@ pub enum ContentError {
     ZeroDuration {
         object_type: ObjectTypeId,
         ad: AdvertisementId,
+        path: PathBuf,
+    },
+
+    #[error("duplicate InteractionSpotId {spot:?} within ObjectType {object_type:?} in {path}",
+        path = path.display())]
+    DuplicateInteractionSpotId {
+        object_type: ObjectTypeId,
+        spot: InteractionSpotId,
+        path: PathBuf,
+    },
+
+    #[error("invalid interaction spot {spot:?} on ObjectType {object_type:?} ({path}): {reason}",
+        path = path.display())]
+    InvalidInteractionSpotVector {
+        object_type: ObjectTypeId,
+        spot: InteractionSpotId,
+        reason: &'static str,
         path: PathBuf,
     },
 }

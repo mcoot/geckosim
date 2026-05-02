@@ -24,6 +24,7 @@ pub(crate) fn validate_object_types(
                 second: path.clone(),
             });
         }
+        validate_interaction_spots(path, ot)?;
         validate_advertisements(path, ot)?;
         seen.insert(ot.id, path.clone());
     }
@@ -43,6 +44,44 @@ pub(crate) fn validate_accessories(
             });
         }
         seen.insert(acc.id, path.clone());
+    }
+    Ok(())
+}
+
+fn validate_interaction_spots(path: &Path, ot: &ObjectType) -> Result<(), ContentError> {
+    let mut seen_spots = HashSet::new();
+    for spot in &ot.interaction_spots {
+        if !seen_spots.insert(spot.id) {
+            return Err(ContentError::DuplicateInteractionSpotId {
+                object_type: ot.id,
+                spot: spot.id,
+                path: path.to_path_buf(),
+            });
+        }
+        if !spot.offset.x.is_finite() || !spot.offset.y.is_finite() {
+            return Err(ContentError::InvalidInteractionSpotVector {
+                object_type: ot.id,
+                spot: spot.id,
+                reason: "offset must be finite",
+                path: path.to_path_buf(),
+            });
+        }
+        if !spot.facing.x.is_finite() || !spot.facing.y.is_finite() {
+            return Err(ContentError::InvalidInteractionSpotVector {
+                object_type: ot.id,
+                spot: spot.id,
+                reason: "facing must be finite",
+                path: path.to_path_buf(),
+            });
+        }
+        if spot.facing.x == 0.0 && spot.facing.y == 0.0 {
+            return Err(ContentError::InvalidInteractionSpotVector {
+                object_type: ot.id,
+                spot: spot.id,
+                reason: "facing must be non-zero",
+                path: path.to_path_buf(),
+            });
+        }
     }
     Ok(())
 }
@@ -94,4 +133,61 @@ fn validate_advertisements(path: &Path, ot: &ObjectType) -> Result<(), ContentEr
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+
+    use gecko_sim_core::ids::{InteractionSpotId, ObjectTypeId};
+    use gecko_sim_core::object::{InteractionSpot, MeshId, ObjectType};
+    use gecko_sim_core::world::Vec2;
+
+    use super::validate_object_types;
+    use crate::error::ContentError;
+
+    fn object_type_with_spot(offset: Vec2, facing: Vec2) -> ObjectType {
+        ObjectType {
+            id: ObjectTypeId::new(1),
+            display_name: "Chair".to_string(),
+            mesh_id: MeshId(1),
+            default_state: HashMap::new(),
+            interaction_spots: vec![InteractionSpot {
+                id: InteractionSpotId::new(1),
+                offset,
+                facing,
+                label: None,
+            }],
+            advertisements: vec![],
+        }
+    }
+
+    #[test]
+    fn non_finite_interaction_spot_offset_rejected() {
+        let object_type = object_type_with_spot(
+            Vec2::new(f32::INFINITY, 0.0),
+            Vec2::new(0.0, 1.0),
+        );
+        let err = validate_object_types(&[(PathBuf::from("chair.ron"), object_type)])
+            .expect_err("should fail");
+        assert!(
+            matches!(err, ContentError::InvalidInteractionSpotVector { .. }),
+            "got {err:?}"
+        );
+    }
+
+    #[test]
+    fn non_finite_interaction_spot_facing_rejected() {
+        let object_type = object_type_with_spot(
+            Vec2::new(0.0, -1.0),
+            Vec2::new(f32::NAN, 1.0),
+        );
+        let err = validate_object_types(&[(PathBuf::from("chair.ron"), object_type)])
+            .expect_err("should fail");
+        assert!(
+            matches!(err, ContentError::InvalidInteractionSpotVector { .. }),
+            "got {err:?}"
+        );
+    }
 }

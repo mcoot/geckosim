@@ -172,6 +172,68 @@ ObjectType(
 }
 
 #[test]
+fn duplicate_interaction_spot_id_rejected() {
+    let tmp = tempfile::tempdir().unwrap();
+    let body = r#"
+ObjectType(
+    id: ObjectTypeId(1),
+    display_name: "Chair",
+    mesh_id: MeshId(1),
+    default_state: {},
+    interaction_spots: [
+        InteractionSpot(
+            id: InteractionSpotId(1),
+            offset: Vec2(x: 0.0, y: -1.0),
+            facing: Vec2(x: 0.0, y: 1.0),
+            label: None,
+        ),
+        InteractionSpot(
+            id: InteractionSpotId(1),
+            offset: Vec2(x: 1.0, y: 0.0),
+            facing: Vec2(x: -1.0, y: 0.0),
+            label: None,
+        ),
+    ],
+    advertisements: [],
+)
+"#;
+    write_object_type(tmp.path(), "chair.ron", body);
+    let err = load_from_dir(tmp.path()).expect_err("should fail");
+    assert!(
+        matches!(err, ContentError::DuplicateInteractionSpotId { .. }),
+        "got {err:?}"
+    );
+}
+
+#[test]
+fn zero_facing_interaction_spot_rejected() {
+    let tmp = tempfile::tempdir().unwrap();
+    let body = r#"
+ObjectType(
+    id: ObjectTypeId(1),
+    display_name: "Chair",
+    mesh_id: MeshId(1),
+    default_state: {},
+    interaction_spots: [
+        InteractionSpot(
+            id: InteractionSpotId(1),
+            offset: Vec2(x: 0.0, y: -1.0),
+            facing: Vec2(x: 0.0, y: 0.0),
+            label: None,
+        ),
+    ],
+    advertisements: [],
+)
+"#;
+    write_object_type(tmp.path(), "chair.ron", body);
+    let err = load_from_dir(tmp.path()).expect_err("should fail");
+    assert!(
+        matches!(err, ContentError::InvalidInteractionSpotVector { .. }),
+        "got {err:?}"
+    );
+}
+
+#[test]
 fn unknown_object_state_key_rejected() {
     let tmp = tempfile::tempdir().unwrap();
     let body = r#"
