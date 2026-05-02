@@ -272,6 +272,45 @@ pub struct MemoryEntry {
     pub importance: f32,
 }
 
+/// Bounded episodic memory ring for an agent.
+///
+/// The runtime cap is enforced by `systems::memory::push_memory`; the
+/// component stores a plain `Vec` to match ADR 0011's v0 bounded-ring alias.
+#[derive(
+    bevy_ecs::component::Component,
+    Debug, Clone, PartialEq, Default, Serialize, Deserialize,
+)]
+pub struct Memory {
+    pub entries: Vec<MemoryEntry>,
+}
+
+#[cfg(test)]
+mod memory_component_tests {
+    use super::{Memory, MemoryEntry};
+    use bevy_ecs::world::World;
+
+    #[test]
+    fn memory_default_is_empty() {
+        let memory = Memory::default();
+        assert!(memory.entries.is_empty());
+    }
+
+    #[test]
+    fn memory_can_be_inserted_as_component() {
+        let mut world = World::new();
+        let entity = world.spawn(Memory::default()).id();
+        let memory = world.get::<Memory>(entity).expect("Memory component present");
+        assert!(memory.entries.is_empty());
+    }
+
+    fn assert_memory_entry_clone<T: Clone>() {}
+
+    #[test]
+    fn memory_entry_remains_cloneable() {
+        assert_memory_entry_clone::<MemoryEntry>();
+    }
+}
+
 // ---------------------------------------------------------------------------
 // (5) Relationships
 // ---------------------------------------------------------------------------

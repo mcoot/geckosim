@@ -11,6 +11,7 @@
 //!   - `decision`      utility-AI scoring + commit + execute (per ADR 0004)  ← landed
 
 pub mod decision;
+pub mod memory;
 pub mod mood;
 pub mod movement;
 pub mod needs;
