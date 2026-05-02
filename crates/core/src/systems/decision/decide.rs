@@ -38,6 +38,7 @@ const NOISE_SCALE: f32 = 0.1;
 /// the next action via the v0 utility-AI scorer.
 #[allow(
     clippy::needless_pass_by_value,
+    clippy::type_complexity,
     reason = "bevy_ecs SystemParam: Res must be passed by value"
 )]
 pub(crate) fn decide(

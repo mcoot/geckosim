@@ -82,7 +82,8 @@ pub(crate) fn resolve_interaction_target(
         let replace = best
             .as_ref()
             .is_none_or(|(best_distance, best_spot, _)| {
-                distance < *best_distance || (distance == *best_distance && spot.id < *best_spot)
+                distance.total_cmp(best_distance).is_lt()
+                    || (distance.total_cmp(best_distance).is_eq() && spot.id < *best_spot)
             });
         if replace {
             best = Some((distance, spot.id, target));
