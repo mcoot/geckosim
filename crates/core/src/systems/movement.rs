@@ -76,6 +76,9 @@ pub(crate) fn walk(
             committed.started_tick = current_tick.0;
             committed.expected_end_tick =
                 Some(current_tick.0 + u64::from(committed.perform_duration_ticks));
+            if let Some(target_facing) = committed.target_facing {
+                facing.dir = target_facing;
+            }
         }
     }
 }
@@ -164,6 +167,24 @@ mod tests {
             .unwrap();
         assert_eq!(action.phase, Phase::Performing);
         assert_eq!(action.expected_end_tick, Some(1 + 4));
+    }
+
+    #[test]
+    fn arrival_applies_target_facing() {
+        let (mut world, agent) = build(Vec2::ZERO, Vec2::new(10.0, 0.0), 4);
+        world
+            .get_mut::<CurrentAction>(agent)
+            .unwrap()
+            .0
+            .as_mut()
+            .unwrap()
+            .target_facing = Some(Vec2::new(0.0, 1.0));
+        let mut sched = Schedule::default();
+        sched.add_systems(walk);
+        *world.resource_mut::<CurrentTick>() = CurrentTick(1);
+        sched.run(&mut world);
+
+        assert_eq!(world.get::<Facing>(agent).unwrap().dir, Vec2::new(0.0, 1.0));
     }
 
     #[test]
