@@ -5,6 +5,14 @@ ObjectType(
     default_state: {
         "stocked": Bool(true),
     },
+    interaction_spots: [
+        InteractionSpot(
+            id: InteractionSpotId(1),
+            offset: Vec2(x: 0.0, y: -1.0),
+            facing: Vec2(x: 0.0, y: 1.0),
+            label: Some("door"),
+        ),
+    ],
     advertisements: [
         Advertisement(
             id: AdvertisementId(1),
