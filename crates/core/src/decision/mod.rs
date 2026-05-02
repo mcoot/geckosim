@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::agent::Need;
-use crate::ids::{AdvertisementId, ObjectId, ObjectTypeId};
+use crate::ids::{AdvertisementId, InteractionSpotId, ObjectId, ObjectTypeId};
 use crate::world::Vec2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -50,6 +50,12 @@ pub struct CommittedAction {
     pub expected_end_tick: Option<u64>,
     pub phase: Phase,
     pub target_position: Option<Vec2>,
+    /// Resolved interaction spot for object-targeted actions. `None`
+    /// means the action targets the object center fallback or is a
+    /// self-action.
+    pub target_spot: Option<InteractionSpotId>,
+    /// Facing to apply once movement arrives at `target_position`.
+    pub target_facing: Option<Vec2>,
     /// Duration of the perform phase, in ticks. Set at `decide` time and
     /// frozen through `Walking` so `movement::walk` can compute
     /// `expected_end_tick` on arrival.

@@ -113,6 +113,8 @@ mod tests {
                     expected_end_tick: None,
                     phase: Phase::Walking,
                     target_position: Some(target),
+                    target_spot: None,
+                    target_facing: None,
                     perform_duration_ticks: perform,
                 })),
             ))
@@ -181,6 +183,8 @@ mod tests {
                     expected_end_tick: Some(5),
                     phase: Phase::Performing,
                     target_position: None,
+                    target_spot: None,
+                    target_facing: None,
                     perform_duration_ticks: 5,
                 })),
             ))

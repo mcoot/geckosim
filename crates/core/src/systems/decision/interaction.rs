@@ -1,5 +1,4 @@
 //! Interaction-target resolution for object actions.
-#![allow(dead_code, reason = "wired into decide in the next task")]
 
 use std::collections::HashSet;
 

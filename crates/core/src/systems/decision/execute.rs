@@ -236,6 +236,8 @@ mod tests {
             expected_end_tick: Some(10),
             phase: Phase::Performing,
             target_position: None,
+            target_spot: None,
+            target_facing: None,
             perform_duration_ticks: 10,
         };
         let (mut world, agent) = build_world(
@@ -278,6 +280,8 @@ mod tests {
             expected_end_tick: Some(10),
             phase: Phase::Performing,
             target_position: None,
+            target_spot: None,
+            target_facing: None,
             perform_duration_ticks: 10,
         };
         let (mut world, agent) = build_world(
@@ -311,6 +315,8 @@ mod tests {
             expected_end_tick: Some(5),
             phase: Phase::Performing,
             target_position: None,
+            target_spot: None,
+            target_facing: None,
             perform_duration_ticks: 5,
         };
         let (mut world, agent) = build_world(Needs::full(), Some(action), 5);
