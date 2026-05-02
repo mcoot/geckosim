@@ -15,6 +15,12 @@ ObjectType(
             ],
             effects: [
                 AgentNeedDelta(Hunger, 0.4),
+                MemoryGenerate(
+                    kind: Routine,
+                    importance: 0.2,
+                    valence: 0.35,
+                    participants: Self_,
+                ),
             ],
             duration_ticks: 10,
             interrupt_class: NeedsThresholdOnly,

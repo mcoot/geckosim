@@ -3,13 +3,13 @@
 
 mod common;
 
-use gecko_sim_core::agent::Needs;
+use gecko_sim_core::agent::{MemoryKind, Needs};
 use gecko_sim_core::{Sim, Vec2};
 
 #[test]
 fn agent_eats_from_fridge_when_hungry() {
     let mut sim = Sim::new(0, common::seed_content_bundle());
-    sim.spawn_test_agent_with_needs(
+    let agent_id = sim.spawn_test_agent_with_needs(
         "Hungry",
         Needs {
             hunger: 0.3,
@@ -33,4 +33,8 @@ fn agent_eats_from_fridge_when_hungry() {
         "hunger restored from 0.3 to {}",
         agent.needs.hunger
     );
+    let memories = sim.agent_memory(agent_id).expect("agent has memory");
+    assert_eq!(memories.len(), 1);
+    assert_eq!(memories[0].kind, MemoryKind::Routine);
+    assert_eq!(memories[0].participants, vec![agent_id]);
 }
