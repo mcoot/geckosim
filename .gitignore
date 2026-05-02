@@ -1,6 +1,7 @@
 /target
 .DS_Store
 
+.superpowers/
 .workspaces/
 .jj-*
 
