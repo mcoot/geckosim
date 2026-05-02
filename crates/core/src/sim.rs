@@ -11,7 +11,8 @@ use bevy_ecs::schedule::{IntoScheduleConfigs, Schedule};
 use bevy_ecs::world::World;
 
 use crate::agent::{
-    Accessory, AccessoryCatalog, Facing, Identity, Mood, Needs, Personality, Position,
+    Accessory, AccessoryCatalog, Facing, Identity, Memory, MemoryEntry, Mood, Needs, Personality,
+    Position,
 };
 use crate::decision::{CurrentAction, RecentActionsRing};
 use crate::ids::{AccessoryId, AgentId, LeafAreaId, ObjectId, ObjectTypeId};
@@ -19,6 +20,7 @@ use crate::object::{ObjectCatalog, ObjectType, SmartObject};
 use crate::rng::PrngState;
 use crate::snapshot::{AgentSnapshot, ObjectSnapshot, Snapshot};
 use crate::systems;
+use crate::systems::memory::MemoryIdAllocator;
 use crate::time::CurrentTick;
 use crate::world::{Vec2, WorldGraph};
 
@@ -69,6 +71,7 @@ impl Sim {
         world.insert_resource(SimRngResource(PrngState::from_seed(seed)));
         world.insert_resource(WorldGraph::seed_v0());
         world.insert_resource(CurrentTick(0));
+        world.insert_resource(MemoryIdAllocator::default());
 
         let mut schedule = Schedule::default();
         schedule.add_systems(
@@ -135,6 +138,20 @@ impl Sim {
             .expect("WorldGraph resource is inserted in Sim::new")
     }
 
+    /// Borrow an agent's memory entries by stable `AgentId`.
+    #[must_use]
+    pub fn agent_memory(&self, agent_id: AgentId) -> Option<&[MemoryEntry]> {
+        self.world.iter_entities().find_map(|entity_ref| {
+            let identity = entity_ref.get::<Identity>()?;
+            if identity.id != agent_id {
+                return None;
+            }
+            entity_ref
+                .get::<Memory>()
+                .map(|memory| memory.entries.as_slice())
+        })
+    }
+
     /// Spawn a fresh agent at full needs and neutral mood with a
     /// monotonically allocated `AgentId`.
     ///
@@ -175,6 +192,7 @@ impl Sim {
             needs,
             Mood::neutral(),
             personality,
+            Memory::default(),
             position,
             facing,
             CurrentAction::default(),
@@ -253,10 +271,7 @@ impl Sim {
                 let mood = entity_ref.get::<Mood>()?;
                 let personality = entity_ref.get::<Personality>().copied().unwrap_or_default();
                 let position = entity_ref.get::<Position>().copied()?;
-                let facing = entity_ref
-                    .get::<Facing>()
-                    .copied()
-                    .unwrap_or_default();
+                let facing = entity_ref.get::<Facing>().copied().unwrap_or_default();
                 let action_phase = entity_ref
                     .get::<CurrentAction>()
                     .and_then(|c| c.0.as_ref())

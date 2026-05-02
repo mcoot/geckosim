@@ -9,13 +9,14 @@
 //! For self-actions (`Idle`/`Wait`): clears `CurrentAction` only — no
 //! effects, no ring entry.
 
-use bevy_ecs::system::{Query, Res};
+use bevy_ecs::system::{Query, Res, ResMut};
 
-use crate::agent::{Mood, Needs};
+use crate::agent::{Identity, Memory, Mood, Needs, Position};
 use crate::decision::{ActionRef, CurrentAction, Phase, RecentActionEntry, RecentActionsRing};
 use crate::ids::{AdvertisementId, ObjectId};
 use crate::object::{Advertisement, ObjectCatalog, SmartObject};
-use crate::systems::decision::effects::{apply as apply_effect, EffectTarget};
+use crate::systems::decision::effects::{apply as apply_effect, EffectTarget, MemoryEffectTarget};
+use crate::systems::memory::MemoryIdAllocator;
 use crate::time::CurrentTick;
 
 /// Run the execute phase of the decision runtime: complete any agent
@@ -31,15 +32,20 @@ use crate::time::CurrentTick;
 pub(crate) fn execute(
     catalog: Res<ObjectCatalog>,
     current_tick: Res<CurrentTick>,
+    mut memory_ids: ResMut<MemoryIdAllocator>,
     objects: Query<&SmartObject>,
     mut agents: Query<(
+        Option<&Identity>,
+        Option<&Position>,
         &mut Needs,
         &mut Mood,
+        Option<&mut Memory>,
         &mut RecentActionsRing,
         &mut CurrentAction,
     )>,
 ) {
-    for (mut needs, mut mood, mut ring, mut current) in &mut agents {
+    for (identity, position, mut needs, mut mood, mut memory, mut ring, mut current) in &mut agents
+    {
         let Some(action) = &current.0 else {
             continue;
         };
@@ -60,9 +66,22 @@ pub(crate) fn execute(
                 if let Some((type_id, advertisement)) =
                     lookup_advertisement(&catalog, &objects, object, ad)
                 {
+                    let memory_target = match (identity, position, memory.as_mut()) {
+                        (Some(identity), Some(position), Some(memory)) => {
+                            Some(MemoryEffectTarget {
+                                actor: identity.id,
+                                location: position.leaf,
+                                memory: &mut **memory,
+                                memory_ids: &mut memory_ids,
+                                current_tick: current_tick.0,
+                            })
+                        }
+                        _ => None,
+                    };
                     let mut target = EffectTarget {
                         needs: &mut needs,
                         mood: &mut mood,
+                        memory: memory_target,
                     };
                     for effect in &advertisement.effects {
                         apply_effect(effect, &mut target);
@@ -108,16 +127,19 @@ mod tests {
     use bevy_ecs::schedule::Schedule;
     use bevy_ecs::world::World;
 
-    use crate::agent::{Mood, Need, Needs, Personality};
+    use crate::agent::{
+        Identity, Memory, MemoryKind, Mood, Need, Needs, Personality, Position, TargetSpec,
+    };
     use crate::decision::{
         ActionRef, CommittedAction, CurrentAction, Phase, RecentActionsRing, SelfActionKind,
     };
-    use crate::ids::{AdvertisementId, LeafAreaId, ObjectId, ObjectTypeId};
+    use crate::ids::{AdvertisementId, AgentId, LeafAreaId, ObjectId, ObjectTypeId};
     use crate::object::{
         Advertisement, Effect, InterruptClass, MeshId, ObjectCatalog, ObjectType, Op, Predicate,
         ScoreTemplate, SmartObject, StateValue,
     };
     use crate::systems::decision::execute::execute;
+    use crate::systems::memory::MemoryIdAllocator;
     use crate::time::CurrentTick;
     use crate::world::Vec2;
 
@@ -133,7 +155,15 @@ mod tests {
                 id: AdvertisementId::new(1),
                 display_name: "Eat snack".to_string(),
                 preconditions: vec![Predicate::AgentNeed(Need::Hunger, Op::Lt, 0.6)],
-                effects: vec![Effect::AgentNeedDelta(Need::Hunger, 0.4)],
+                effects: vec![
+                    Effect::AgentNeedDelta(Need::Hunger, 0.4),
+                    Effect::MemoryGenerate {
+                        kind: MemoryKind::Routine,
+                        importance: 0.2,
+                        valence: 0.35,
+                        participants: TargetSpec::Self_,
+                    },
+                ],
                 duration_ticks: 10,
                 interrupt_class: InterruptClass::NeedsThresholdOnly,
                 score_template: ScoreTemplate {
@@ -154,8 +184,11 @@ mod tests {
         let fridge = fridge_object_type();
         let mut object_types = HashMap::new();
         object_types.insert(fridge.id, fridge);
-        world.insert_resource(ObjectCatalog { by_id: object_types });
+        world.insert_resource(ObjectCatalog {
+            by_id: object_types,
+        });
         world.insert_resource(CurrentTick(current_tick));
+        world.insert_resource(MemoryIdAllocator::default());
 
         // One smart-object instance.
         let mut state = HashMap::new();
@@ -171,8 +204,17 @@ mod tests {
 
         let agent = world
             .spawn((
+                Identity {
+                    id: AgentId::new(0),
+                    name: "Tester".to_string(),
+                },
                 agent_needs,
                 Mood::neutral(),
+                Position {
+                    leaf: LeafAreaId::new(0),
+                    pos: Vec2::ZERO,
+                },
+                Memory::default(),
                 CurrentAction(action),
                 RecentActionsRing::default(),
             ))
@@ -215,6 +257,11 @@ mod tests {
             ring.entries[0].ad_template,
             (ObjectTypeId::new(1), AdvertisementId::new(1))
         );
+        let memory = world.get::<Memory>(agent).unwrap();
+        assert_eq!(memory.entries.len(), 1);
+        assert_eq!(memory.entries[0].kind, MemoryKind::Routine);
+        assert_eq!(memory.entries[0].participants, vec![AgentId::new(0)]);
+        assert_eq!(memory.entries[0].location, LeafAreaId::new(0));
     }
 
     #[test]
@@ -243,9 +290,14 @@ mod tests {
         schedule.run(&mut world);
 
         let needs = world.get::<Needs>(agent).unwrap();
-        assert!((needs.hunger - 0.3).abs() < 1e-6, "hunger should be unchanged");
+        assert!(
+            (needs.hunger - 0.3).abs() < 1e-6,
+            "hunger should be unchanged"
+        );
         let current = world.get::<CurrentAction>(agent).unwrap();
         assert!(current.0.is_some(), "current_action should still be set");
+        let memory = world.get::<Memory>(agent).unwrap();
+        assert!(memory.entries.is_empty());
     }
 
     #[test]
@@ -268,6 +320,8 @@ mod tests {
         let ring = world.get::<RecentActionsRing>(agent).unwrap();
         // Idle does NOT add a ring entry.
         assert!(ring.entries.is_empty());
+        let memory = world.get::<Memory>(agent).unwrap();
+        assert!(memory.entries.is_empty());
     }
 
     #[test]

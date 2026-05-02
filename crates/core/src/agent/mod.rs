@@ -168,8 +168,7 @@ impl Needs {
 /// via `Personality::sample(rng)`; `Default` is retained for unit tests
 /// that build hand-crafted worlds and want zero personality.
 #[derive(
-    bevy_ecs::component::Component,
-    Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize,
+    bevy_ecs::component::Component, Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize,
 )]
 #[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
 #[cfg_attr(
@@ -214,10 +213,7 @@ pub enum MoodDim {
 /// Short-term emotional state per ADR 0011 (3-dimensional vector).
 /// Doubles as the ECS component (lazy sharding — schema and component
 /// share a type until a future pass needs them to diverge).
-#[derive(
-    bevy_ecs::component::Component,
-    Debug, Clone, Copy, PartialEq, Serialize, Deserialize,
-)]
+#[derive(bevy_ecs::component::Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "export-ts", derive(ts_rs::TS))]
 #[cfg_attr(
     feature = "export-ts",
@@ -277,8 +273,7 @@ pub struct MemoryEntry {
 /// The runtime cap is enforced by `systems::memory::push_memory`; the
 /// component stores a plain `Vec` to match ADR 0011's v0 bounded-ring alias.
 #[derive(
-    bevy_ecs::component::Component,
-    Debug, Clone, PartialEq, Default, Serialize, Deserialize,
+    bevy_ecs::component::Component, Debug, Clone, PartialEq, Default, Serialize, Deserialize,
 )]
 pub struct Memory {
     pub entries: Vec<MemoryEntry>,
@@ -299,7 +294,9 @@ mod memory_component_tests {
     fn memory_can_be_inserted_as_component() {
         let mut world = World::new();
         let entity = world.spawn(Memory::default()).id();
-        let memory = world.get::<Memory>(entity).expect("Memory component present");
+        let memory = world
+            .get::<Memory>(entity)
+            .expect("Memory component present");
         assert!(memory.entries.is_empty());
     }
 
@@ -577,7 +574,9 @@ mod identity_component_tests {
                 Needs::full(),
             ))
             .id();
-        let id = world.get::<Identity>(entity).expect("Identity component present");
+        let id = world
+            .get::<Identity>(entity)
+            .expect("Identity component present");
         assert_eq!(id.id, AgentId::new(7));
         assert_eq!(id.name, "Alice");
     }

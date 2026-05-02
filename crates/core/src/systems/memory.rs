@@ -52,11 +52,7 @@ fn eviction_index(entries: &[MemoryEntry], current_tick: u64) -> Option<usize> {
         .map(|(idx, _)| idx)
 }
 
-fn compare_for_eviction(
-    a: &MemoryEntry,
-    b: &MemoryEntry,
-    current_tick: u64,
-) -> std::cmp::Ordering {
+fn compare_for_eviction(a: &MemoryEntry, b: &MemoryEntry, current_tick: u64) -> std::cmp::Ordering {
     let score_order = eviction_score(a, current_tick).total_cmp(&eviction_score(b, current_tick));
     score_order
         .then_with(|| a.tick.cmp(&b.tick))
@@ -153,7 +149,8 @@ mod tests {
 
     #[test]
     fn unsupported_targets_resolve_empty_at_v0() {
-        assert!(resolve_memory_participants(TargetSpec::OwnerOfObject, AgentId::new(42))
-            .is_empty());
+        assert!(
+            resolve_memory_participants(TargetSpec::OwnerOfObject, AgentId::new(42)).is_empty()
+        );
     }
 }

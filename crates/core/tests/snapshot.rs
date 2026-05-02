@@ -42,4 +42,7 @@ fn snapshot_contains_spawned_agents_sorted_by_id() {
     assert_eq!(snap.agents[1].pos, Vec2::new(1.0, 0.0));
     assert_eq!(snap.agents[2].pos, Vec2::new(2.0, 0.0));
     assert!(snap.agents[0].action_phase.is_none());
+
+    let alice_memory = sim.agent_memory(alice).expect("Alice has memory component");
+    assert!(alice_memory.is_empty());
 }
