@@ -153,6 +153,7 @@ mod tests {
             display_name: "Fridge".to_string(),
             mesh_id: MeshId(1),
             default_state: state,
+            interaction_spots: vec![],
             advertisements: vec![Advertisement {
                 id: AdvertisementId::new(1),
                 display_name: "Eat snack".to_string(),

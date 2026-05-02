@@ -47,6 +47,35 @@ ObjectType(
 "#;
 
 #[test]
+fn object_type_with_interaction_spot_loads() {
+    let tmp = tempfile::tempdir().unwrap();
+    let body = r#"
+ObjectType(
+    id: ObjectTypeId(9),
+    display_name: "Bench",
+    mesh_id: MeshId(9),
+    default_state: {},
+    interaction_spots: [
+        InteractionSpot(
+            id: InteractionSpotId(1),
+            offset: Vec2(x: 0.0, y: -1.0),
+            facing: Vec2(x: 0.0, y: 1.0),
+            label: Some("front"),
+        ),
+    ],
+    advertisements: [],
+)
+"#;
+    write_object_type(tmp.path(), "bench.ron", body);
+    let bundle = load_from_dir(tmp.path()).expect("valid spot object type loads");
+    let object_type = bundle
+        .object_types
+        .get(&gecko_sim_core::ids::ObjectTypeId::new(9))
+        .unwrap();
+    assert_eq!(object_type.interaction_spots.len(), 1);
+}
+
+#[test]
 fn parse_error_on_malformed_ron() {
     let tmp = tempfile::tempdir().unwrap();
     write_object_type(tmp.path(), "broken.ron", "this is not RON");

@@ -19,6 +19,7 @@ fn object_catalog_resource_inserts() {
             display_name: "Fridge".into(),
             mesh_id: MeshId(1),
             default_state: HashMap::new(),
+            interaction_spots: vec![],
             advertisements: vec![],
         },
     );
@@ -69,6 +70,7 @@ fn sim_new_inserts_object_and_accessory_catalogs_from_bundle() {
             display_name: "Chair".into(),
             mesh_id: MeshId(2),
             default_state: HashMap::new(),
+            interaction_spots: vec![],
             advertisements: vec![],
         },
     );

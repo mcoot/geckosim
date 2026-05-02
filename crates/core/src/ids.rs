@@ -49,6 +49,7 @@ id_newtype!(CrimeIncidentId);
 id_newtype!(MemoryEntryId);
 id_newtype!(AccessoryId);
 id_newtype!(AdvertisementId);
+id_newtype!(InteractionSpotId);
 id_newtype!(PromotedEventId);
 
 /// An owner reference for entities that can be owned by an agent, household, or business

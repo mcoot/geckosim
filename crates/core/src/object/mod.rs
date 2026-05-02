@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 use crate::agent::{
     ConditionKind, ItemType, MemoryKind, MoodDim, Need, Personality, RelField, Skill, TargetSpec,
 };
-use crate::ids::{AdvertisementId, LeafAreaId, ObjectId, ObjectTypeId, OwnerRef};
+use crate::ids::{
+    AdvertisementId, InteractionSpotId, LeafAreaId, ObjectId, ObjectTypeId, OwnerRef,
+};
 use crate::world::Vec2;
 
 // ---------------------------------------------------------------------------
@@ -41,7 +43,20 @@ pub struct ObjectType {
     pub display_name: String,
     pub mesh_id: MeshId,
     pub default_state: StateMap,
+    #[serde(default)]
+    pub interaction_spots: Vec<InteractionSpot>,
     pub advertisements: Vec<Advertisement>,
+}
+
+/// A usable spot around a smart-object instance. `offset` is in the
+/// object's leaf-local coordinates relative to `SmartObject::position`;
+/// `facing` is normalized during target resolution.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct InteractionSpot {
+    pub id: InteractionSpotId,
+    pub offset: Vec2,
+    pub facing: Vec2,
+    pub label: Option<String>,
 }
 
 /// Per-instance smart-object state (per ADR 0011). Doubles as the ECS
