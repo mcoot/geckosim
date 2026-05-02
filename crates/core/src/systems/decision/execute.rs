@@ -19,6 +19,16 @@ use crate::systems::decision::effects::{apply as apply_effect, EffectTarget, Mem
 use crate::systems::memory::MemoryIdAllocator;
 use crate::time::CurrentTick;
 
+type AgentEffectQuery<'w> = (
+    Option<&'w Identity>,
+    Option<&'w Position>,
+    &'w mut Needs,
+    &'w mut Mood,
+    Option<&'w mut Memory>,
+    &'w mut RecentActionsRing,
+    &'w mut CurrentAction,
+);
+
 /// Run the execute phase of the decision runtime: complete any agent
 /// whose committed action has reached its `expected_end_tick`.
 ///
@@ -34,15 +44,7 @@ pub(crate) fn execute(
     current_tick: Res<CurrentTick>,
     mut memory_ids: ResMut<MemoryIdAllocator>,
     objects: Query<&SmartObject>,
-    mut agents: Query<(
-        Option<&Identity>,
-        Option<&Position>,
-        &mut Needs,
-        &mut Mood,
-        Option<&mut Memory>,
-        &mut RecentActionsRing,
-        &mut CurrentAction,
-    )>,
+    mut agents: Query<AgentEffectQuery<'_>>,
 ) {
     for (identity, position, mut needs, mut mood, mut memory, mut ring, mut current) in &mut agents
     {
@@ -71,7 +73,7 @@ pub(crate) fn execute(
                             Some(MemoryEffectTarget {
                                 actor: identity.id,
                                 location: position.leaf,
-                                memory: &mut **memory,
+                                memory,
                                 memory_ids: &mut memory_ids,
                                 current_tick: current_tick.0,
                             })

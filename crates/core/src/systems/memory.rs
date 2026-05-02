@@ -108,8 +108,8 @@ mod tests {
         let mut e = entry(0, 10, 2.0);
         e.valence = -2.0;
         push_memory(&mut memory, e, 10);
-        assert_eq!(memory.entries[0].importance, 1.0);
-        assert_eq!(memory.entries[0].valence, -1.0);
+        assert!((memory.entries[0].importance - 1.0).abs() < f32::EPSILON);
+        assert!((memory.entries[0].valence + 1.0).abs() < f32::EPSILON);
     }
 
     #[test]

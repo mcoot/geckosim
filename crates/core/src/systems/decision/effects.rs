@@ -216,7 +216,7 @@ mod tests {
         assert_eq!(entry.tick, 12);
         assert_eq!(entry.location, LeafAreaId::new(3));
         assert_eq!(entry.participants, vec![AgentId::new(7)]);
-        assert_eq!(entry.importance, 1.0);
-        assert_eq!(entry.valence, -1.0);
+        assert!((entry.importance - 1.0).abs() < f32::EPSILON);
+        assert!((entry.valence + 1.0).abs() < f32::EPSILON);
     }
 }
