@@ -171,6 +171,10 @@ fn agent_snapshot_with_current_action_roundtrips() {
             current_action: Some(CurrentActionView {
                 display_name: "Eat snack".to_string(),
                 fraction_complete: 0.5,
+                phase: gecko_sim_core::decision::Phase::Performing,
+                target_object_id: Some(gecko_sim_core::ids::ObjectId::new(2)),
+                target_position: Some(Vec2::new(96.0, 87.0)),
+                target_label: Some("Fridge".to_string()),
             }),
         }],
         objects: vec![],

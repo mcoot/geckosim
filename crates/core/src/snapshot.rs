@@ -31,6 +31,14 @@ pub struct CurrentActionView {
     /// while `Walking`; rises monotonically toward `1.0` while
     /// `Performing`.
     pub fraction_complete: f32,
+    /// Current phase of the committed action.
+    pub phase: Phase,
+    /// Target object id for object-targeted actions.
+    pub target_object_id: Option<ObjectId>,
+    /// Committed interaction position for the current action.
+    pub target_position: Option<Vec2>,
+    /// Human-readable target label when one is known.
+    pub target_label: Option<String>,
 }
 
 /// Per-instance smart-object row sent every snapshot. Carries the data

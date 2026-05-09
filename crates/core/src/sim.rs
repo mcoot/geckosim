@@ -358,16 +358,16 @@ fn project_current_action(
     } else {
         0.0
     };
-    let display_name = match action.action {
+    let (display_name, target_object_id, target_label) = match action.action {
         crate::decision::ActionRef::SelfAction(crate::decision::SelfActionKind::Idle) => {
-            "Idle".to_string()
+            ("Idle".to_string(), None, None)
         }
         crate::decision::ActionRef::SelfAction(crate::decision::SelfActionKind::Wait) => {
-            "Wait".to_string()
+            ("Wait".to_string(), None, None)
         }
         crate::decision::ActionRef::Object { object, ad } => {
             // Look up the smart-object instance to get its type, then
-            // the catalog's advertisement display_name.
+            // the catalog's advertisement and object display names.
             let object_entry = sim
                 .world
                 .iter_entities()
@@ -379,11 +379,19 @@ fn project_current_action(
                 .by_id
                 .get(&smart_object.type_id)?;
             let advertisement = object_type.advertisements.iter().find(|a| a.id == ad)?;
-            advertisement.display_name.clone()
+            (
+                advertisement.display_name.clone(),
+                Some(object),
+                Some(object_type.display_name.clone()),
+            )
         }
     };
     Some(crate::snapshot::CurrentActionView {
         display_name,
         fraction_complete,
+        phase: action.phase,
+        target_object_id,
+        target_position: action.target_position,
+        target_label,
     })
 }
