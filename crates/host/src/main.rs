@@ -1,10 +1,7 @@
 use anyhow::Context;
-use gecko_sim_core::Sim;
-use gecko_sim_host::{config, sim_driver, ws_server};
+use gecko_sim_host::{config, demo, sim_driver, ws_server};
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
-
-const DEMO_SEED: u64 = 0xDEAD_BEEF;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -22,16 +19,14 @@ async fn main() -> anyhow::Result<()> {
         "content loaded"
     );
 
-    let mut sim = Sim::new(DEMO_SEED, content);
-    sim.spawn_test_agent("Alice");
-    sim.spawn_test_agent("Bob");
-    sim.spawn_test_agent("Charlie");
-    let spawn_leaf = sim.world_graph().default_spawn_leaf;
-    let object_ids = sim.spawn_one_of_each_object_type(spawn_leaf, gecko_sim_core::Vec2::ZERO);
-    tracing::info!(object_count = object_ids.len(), "seed instances spawned");
+    let sim = demo::build_demo_sim(content);
 
     let initial = sim.snapshot();
-    tracing::info!(agents = initial.agents.len(), "sim primed");
+    tracing::info!(
+        agents = initial.agents.len(),
+        objects = initial.objects.len(),
+        "sim primed"
+    );
 
     let world_layout = gecko_sim_core::WorldLayout::from(sim.world_graph());
 
@@ -44,7 +39,12 @@ async fn main() -> anyhow::Result<()> {
     let (snapshot_tx, snapshot_rx) = tokio::sync::watch::channel(initial);
 
     let driver = tokio::spawn(sim_driver::run(sim, input_rx, snapshot_tx));
-    let server = tokio::spawn(ws_server::run(listener, input_tx, snapshot_rx, world_layout));
+    let server = tokio::spawn(ws_server::run(
+        listener,
+        input_tx,
+        snapshot_rx,
+        world_layout,
+    ));
 
     tokio::signal::ctrl_c().await?;
     tracing::info!("ctrl-c received, shutting down");

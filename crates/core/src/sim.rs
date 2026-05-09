@@ -172,17 +172,28 @@ impl Sim {
     /// offset is structural (no RNG) so personality stays the only RNG
     /// draw per spawn.
     pub fn spawn_test_agent_with_needs(&mut self, name: &str, needs: Needs) -> AgentId {
+        let agent_index = self.next_agent_id;
+        let spawn_leaf = self.world.resource::<WorldGraph>().default_spawn_leaf;
+        self.spawn_test_agent_with_needs_at(name, needs, spawn_leaf, spawn_offset(agent_index))
+    }
+
+    /// Spawn a fresh agent with explicit initial needs and position.
+    /// Host/demo code uses this to make seeded scenes readable while
+    /// preserving the deterministic test helper above.
+    pub fn spawn_test_agent_with_needs_at(
+        &mut self,
+        name: &str,
+        needs: Needs,
+        leaf: LeafAreaId,
+        pos: Vec2,
+    ) -> AgentId {
         let id = AgentId::new(self.next_agent_id);
         self.next_agent_id += 1;
         let personality = {
             let mut rng = self.world.resource_mut::<SimRngResource>();
             Personality::sample(&mut rng.0 .0)
         };
-        let spawn_leaf = self.world.resource::<WorldGraph>().default_spawn_leaf;
-        let position = Position {
-            leaf: spawn_leaf,
-            pos: spawn_offset(id.raw()),
-        };
+        let position = Position { leaf, pos };
         let facing = Facing::default();
         self.world.spawn((
             Identity {

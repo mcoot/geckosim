@@ -7,5 +7,6 @@
 //! against an ephemeral listener.
 
 pub mod config;
+pub mod demo;
 pub mod sim_driver;
 pub mod ws_server;

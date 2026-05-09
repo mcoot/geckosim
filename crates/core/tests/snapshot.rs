@@ -55,6 +55,29 @@ fn snapshot_contains_spawned_agents_sorted_by_id() {
     assert!(alice_memory.is_empty());
 }
 
+#[test]
+fn spawn_test_agent_with_needs_at_uses_explicit_position() {
+    let mut sim = Sim::new(0, ContentBundle::default());
+    let spawn_leaf = sim.world_graph().default_spawn_leaf;
+
+    sim.spawn_test_agent_with_needs_at(
+        "Ada",
+        Needs {
+            hunger: 0.25,
+            ..Needs::full()
+        },
+        spawn_leaf,
+        Vec2::new(96.0, 104.0),
+    );
+
+    let snap = sim.snapshot();
+    assert_eq!(snap.agents.len(), 1);
+    assert_eq!(snap.agents[0].name, "Ada");
+    assert_eq!(snap.agents[0].leaf, spawn_leaf);
+    assert_eq!(snap.agents[0].pos, Vec2::new(96.0, 104.0));
+    assert!((snap.agents[0].needs.hunger - 0.25).abs() <= f32::EPSILON);
+}
+
 fn fridge_object_type() -> ObjectType {
     ObjectType {
         id: ObjectTypeId::new(1),
