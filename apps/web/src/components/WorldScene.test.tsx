@@ -9,6 +9,7 @@ const runtimeMock = vi.hoisted(() => {
   const mock = {
     canCreateWorldSceneRuntime: vi.fn(() => true),
     latestOnSelectAgent: null as null | ((agentId: number) => void),
+    latestUpdate: null as null | ReturnType<typeof vi.fn>,
     createWorldSceneRuntime: vi.fn(
       (
         _mount: HTMLElement,
@@ -16,8 +17,9 @@ const runtimeMock = vi.hoisted(() => {
         options?: { onSelectAgent?: (agentId: number) => void },
       ) => {
         mock.latestOnSelectAgent = options?.onSelectAgent ?? null;
+        mock.latestUpdate = vi.fn();
         return {
-          update: vi.fn(),
+          update: mock.latestUpdate,
           dispose: vi.fn(),
         };
       },
@@ -90,6 +92,7 @@ describe("WorldScene", () => {
     runtimeMock.canCreateWorldSceneRuntime.mockReturnValue(true);
     runtimeMock.createWorldSceneRuntime.mockClear();
     runtimeMock.latestOnSelectAgent = null;
+    runtimeMock.latestUpdate = null;
     runtimeMock.createWorldSceneRuntime.mockImplementation(
       (
         _mount: HTMLElement,
@@ -97,8 +100,9 @@ describe("WorldScene", () => {
         options?: { onSelectAgent?: (agentId: number) => void },
       ) => {
         runtimeMock.latestOnSelectAgent = options?.onSelectAgent ?? null;
+        runtimeMock.latestUpdate = vi.fn();
         return {
-          update: vi.fn(),
+          update: runtimeMock.latestUpdate,
           dispose: vi.fn(),
         };
       },
@@ -140,25 +144,71 @@ describe("WorldScene", () => {
     expect(runtimeMock.createWorldSceneRuntime).not.toHaveBeenCalled();
   });
 
-  it("shows selected walking gecko action progress and target", async () => {
-    render(<WorldScene world={world} snapshot={walkingSnapshot} />);
+  it("passes selected gecko id into the runtime update", async () => {
+    render(
+      <WorldScene
+        world={world}
+        snapshot={walkingSnapshot}
+        selectedAgentId={7}
+        onSelectAgent={vi.fn()}
+      />,
+    );
 
-    act(() => runtimeMock.latestOnSelectAgent?.(7));
-
-    expect(await screen.findByText("Ada")).toBeInTheDocument();
-    expect(screen.getByText("Walking to Eat snack")).toBeInTheDocument();
-    expect(screen.getByText("Fridge")).toBeInTheDocument();
-    expect(screen.getByText("25%")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(runtimeMock.latestUpdate).toHaveBeenLastCalledWith(
+        expect.anything(),
+        7,
+      ),
+    );
   });
 
-  it("hides selected detail when the selected gecko disappears", async () => {
-    const { rerender } = render(<WorldScene world={world} snapshot={walkingSnapshot} />);
+  it("notifies the page when a gecko is selected in the scene", () => {
+    const onSelectAgent = vi.fn();
+    render(
+      <WorldScene
+        world={world}
+        snapshot={walkingSnapshot}
+        selectedAgentId={null}
+        onSelectAgent={onSelectAgent}
+      />,
+    );
 
     act(() => runtimeMock.latestOnSelectAgent?.(7));
-    expect(await screen.findByText("Ada")).toBeInTheDocument();
 
-    rerender(<WorldScene world={world} snapshot={snapshot} />);
+    expect(onSelectAgent).toHaveBeenCalledWith(7);
+  });
 
-    await waitFor(() => expect(screen.queryByText("Ada")).not.toBeInTheDocument());
+  it("clears the runtime highlight when the selected gecko disappears", async () => {
+    const { rerender } = render(
+      <WorldScene
+        world={world}
+        snapshot={walkingSnapshot}
+        selectedAgentId={7}
+        onSelectAgent={vi.fn()}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(runtimeMock.latestUpdate).toHaveBeenLastCalledWith(
+        expect.anything(),
+        7,
+      ),
+    );
+
+    rerender(
+      <WorldScene
+        world={world}
+        snapshot={snapshot}
+        selectedAgentId={7}
+        onSelectAgent={vi.fn()}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(runtimeMock.latestUpdate).toHaveBeenLastCalledWith(
+        expect.anything(),
+        null,
+      ),
+    );
   });
 });
