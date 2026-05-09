@@ -4,8 +4,12 @@ import type { WorldSceneModel } from "./model";
 import { populateWorldGroup } from "./scene";
 
 export interface WorldSceneRuntime {
-  update: (model: WorldSceneModel) => void;
+  update: (model: WorldSceneModel, selectedAgentId?: number | null) => void;
   dispose: () => void;
+}
+
+export interface WorldSceneRuntimeOptions {
+  onSelectAgent?: (agentId: number) => void;
 }
 
 export function canCreateWorldSceneRuntime(): boolean {
@@ -29,6 +33,7 @@ export function canCreateWorldSceneRuntime(): boolean {
 export function createWorldSceneRuntime(
   mount: HTMLElement,
   initialModel: WorldSceneModel,
+  options: WorldSceneRuntimeOptions = {},
 ): WorldSceneRuntime {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -51,6 +56,9 @@ export function createWorldSceneRuntime(
   root.name = "world-root";
   scene.add(root);
 
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+
   const resize = () => {
     const width = mount.clientWidth || 640;
     const height = mount.clientHeight || 360;
@@ -71,8 +79,26 @@ export function createWorldSceneRuntime(
   };
   render();
 
-  const update = (model: WorldSceneModel) => {
-    populateWorldGroup(root, model);
+  const handlePointerDown = (event: PointerEvent) => {
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
+    raycaster.setFromCamera(pointer, camera);
+    const hit = raycaster
+      .intersectObjects(root.children, true)
+      .find(
+        (intersection) =>
+          typeof intersection.object.userData.agentId === "number",
+      );
+    const agentId = hit?.object.userData.agentId;
+    if (typeof agentId === "number") {
+      options.onSelectAgent?.(agentId);
+    }
+  };
+  renderer.domElement.addEventListener("pointerdown", handlePointerDown);
+
+  const update = (model: WorldSceneModel, selectedAgentId: number | null = null) => {
+    populateWorldGroup(root, model, { selectedAgentId });
   };
   update(initialModel);
 
@@ -81,6 +107,7 @@ export function createWorldSceneRuntime(
     dispose: () => {
       observer.disconnect();
       window.cancelAnimationFrame(frame);
+      renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
       controls.dispose();
       renderer.dispose();
       renderer.domElement.remove();

@@ -22,10 +22,21 @@ export function WorldScene({ world, snapshot }: WorldSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const runtimeRef = useRef<WorldSceneRuntime | null>(null);
   const [runtimeUnavailable, setRuntimeUnavailable] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
   const model = useMemo(() => buildWorldSceneModel(world, snapshot), [world, snapshot]);
+  const selectedAgent = useMemo(
+    () => snapshot?.agents.find((agent) => agent.id === selectedAgentId) ?? null,
+    [snapshot, selectedAgentId],
+  );
   const summary =
     snapshot &&
     `tick ${snapshot.tick} | ${model.leaves.length} leaves | ${model.agents.length} agents | ${model.objects.length} objects`;
+
+  useEffect(() => {
+    if (selectedAgentId !== null && !selectedAgent) {
+      setSelectedAgentId(null);
+    }
+  }, [selectedAgent, selectedAgentId]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -47,7 +58,11 @@ export function WorldScene({ world, snapshot }: WorldSceneProps) {
     }
 
     try {
-      runtimeRef.current = createWorldSceneRuntime(mount, EMPTY_WORLD_SCENE_MODEL);
+      runtimeRef.current = createWorldSceneRuntime(
+        mount,
+        EMPTY_WORLD_SCENE_MODEL,
+        { onSelectAgent: setSelectedAgentId },
+      );
     } catch {
       runtimeRef.current = null;
       showUnavailable();
@@ -63,8 +78,8 @@ export function WorldScene({ world, snapshot }: WorldSceneProps) {
   }, []);
 
   useEffect(() => {
-    runtimeRef.current?.update(model);
-  }, [model]);
+    runtimeRef.current?.update(model, selectedAgentId);
+  }, [model, selectedAgentId]);
 
   return (
     <section
@@ -84,6 +99,41 @@ export function WorldScene({ world, snapshot }: WorldSceneProps) {
             <p className="text-sm text-neutral-500">3D view unavailable</p>
           )}
           <p className="text-xs text-neutral-500">{summary}</p>
+          {selectedAgent && (
+            <aside className="rounded border border-neutral-300 bg-white/90 p-3 text-sm shadow-sm dark:border-neutral-700 dark:bg-neutral-900/90">
+              <div className="font-medium">{selectedAgent.name}</div>
+              <div className="text-neutral-500">
+                {selectedAgent.current_action
+                  ? `${selectedAgent.current_action.phase} to ${selectedAgent.current_action.display_name}`
+                  : "Idle"}
+              </div>
+              {selectedAgent.current_action?.target_label && (
+                <div className="text-neutral-500">
+                  {selectedAgent.current_action.target_label}
+                </div>
+              )}
+              {selectedAgent.current_action && (
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="h-2 w-32 overflow-hidden rounded bg-neutral-200 dark:bg-neutral-800">
+                    <div
+                      className="h-full rounded bg-blue-500"
+                      style={{
+                        width: `${Math.round(
+                          selectedAgent.current_action.fraction_complete * 100,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="font-mono text-xs">
+                    {(
+                      selectedAgent.current_action.fraction_complete * 100
+                    ).toFixed(0)}
+                    %
+                  </span>
+                </div>
+              )}
+            </aside>
+          )}
         </>
       )}
     </section>
