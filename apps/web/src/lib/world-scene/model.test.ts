@@ -63,7 +63,14 @@ const snapshot: Snapshot = {
       pos: { x: 90, y: 84 },
       facing: { x: 0, y: 1 },
       action_phase: "Walking",
-      current_action: { display_name: "Eat snack", fraction_complete: 0.25 },
+      current_action: {
+        display_name: "Eat snack",
+        fraction_complete: 0.25,
+        phase: "Walking",
+        target_object_id: 2,
+        target_position: { x: 96, y: 87 },
+        target_label: "Fridge",
+      },
     },
   ],
   objects: [{ id: 2, type_id: 1, leaf: 3, pos: { x: 96, y: 88 } }],
@@ -110,6 +117,14 @@ describe("world scene model", () => {
       leafId: 3,
       phase: "Walking",
     });
+    expect(model.agents[0].intent).toMatchObject({
+      actionLabel: "Eat snack",
+      phase: "Walking",
+      progress: 0.25,
+      targetObjectId: 2,
+      targetLabel: "Fridge",
+      targetPosition: { x: 96, y: 0, z: 87 },
+    });
   });
 
   it("returns empty arrays without throwing when data is missing", () => {
@@ -119,5 +134,20 @@ describe("world scene model", () => {
       agents: [],
       bounds: null,
     });
+  });
+
+  it("omits intent when the agent has no current action", () => {
+    const noAction: Snapshot = {
+      ...snapshot,
+      agents: [
+        {
+          ...snapshot.agents[0],
+          action_phase: null,
+          current_action: null,
+        },
+      ],
+    };
+
+    expect(buildWorldSceneModel(world, noAction).agents[0].intent).toBeNull();
   });
 });

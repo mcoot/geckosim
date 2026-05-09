@@ -28,6 +28,15 @@ export interface ObjectRenderModel {
   color: string;
 }
 
+export interface AgentIntentRenderModel {
+  actionLabel: string;
+  phase: Phase;
+  progress: number;
+  targetObjectId: number | null;
+  targetPosition: GroundPoint | null;
+  targetLabel: string | null;
+}
+
 export interface AgentRenderModel {
   id: number;
   name: string;
@@ -36,6 +45,7 @@ export interface AgentRenderModel {
   heading: number;
   phase: Phase | null;
   color: string;
+  intent: AgentIntentRenderModel | null;
 }
 
 export interface WorldSceneModel {
@@ -95,6 +105,20 @@ function projectLeaf(leaf: LeafArea): LeafRenderModel {
 }
 
 function projectAgent(agent: AgentSnapshot): AgentRenderModel {
+  const action = agent.current_action;
+  const intent: AgentIntentRenderModel | null = action
+    ? {
+        actionLabel: action.display_name,
+        phase: action.phase,
+        progress: action.fraction_complete,
+        targetObjectId: action.target_object_id,
+        targetPosition: action.target_position
+          ? simToGround(action.target_position)
+          : null,
+        targetLabel: action.target_label,
+      }
+    : null;
+
   return {
     id: agent.id,
     name: agent.name,
@@ -103,6 +127,7 @@ function projectAgent(agent: AgentSnapshot): AgentRenderModel {
     heading: headingRadians(agent.facing),
     phase: agent.action_phase,
     color: phaseStyle(agent.action_phase).agentColor,
+    intent,
   };
 }
 
