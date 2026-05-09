@@ -4,9 +4,7 @@
 use gecko_sim_core::agent::{Mood, Needs, Personality};
 use gecko_sim_core::ids::{AgentId, LeafAreaId};
 use gecko_sim_core::{AgentSnapshot, Snapshot, Vec2, WorldGraph, WorldLayout};
-use gecko_sim_protocol::{
-    ClientMessage, PlayerInput, ServerMessage, WireFormat, PROTOCOL_VERSION,
-};
+use gecko_sim_protocol::{ClientMessage, PlayerInput, ServerMessage, WireFormat, PROTOCOL_VERSION};
 
 fn sample_snapshot() -> Snapshot {
     sample_snapshot_with_agents(2)
@@ -115,8 +113,8 @@ fn server_messages_use_tagged_enum_layout() {
 
 #[test]
 fn client_messages_use_tagged_enum_layout() {
-    let json = serde_json::to_string(&ClientMessage::PlayerInput(PlayerInput::TogglePause))
-        .unwrap();
+    let json =
+        serde_json::to_string(&ClientMessage::PlayerInput(PlayerInput::TogglePause)).unwrap();
     assert!(json.contains("\"type\":\"player_input\""), "got {json}");
     assert!(json.contains("\"kind\":\"toggle_pause\""), "got {json}");
 }

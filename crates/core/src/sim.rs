@@ -176,7 +176,7 @@ impl Sim {
         self.next_agent_id += 1;
         let personality = {
             let mut rng = self.world.resource_mut::<SimRngResource>();
-            Personality::sample(&mut rng.0.0)
+            Personality::sample(&mut rng.0 .0)
         };
         let spawn_leaf = self.world.resource::<WorldGraph>().default_spawn_leaf;
         let position = Position {
@@ -368,10 +368,10 @@ fn project_current_action(
         crate::decision::ActionRef::Object { object, ad } => {
             // Look up the smart-object instance to get its type, then
             // the catalog's advertisement and object display names.
-            let object_entry = sim
-                .world
-                .iter_entities()
-                .find(|e| e.get::<crate::object::SmartObject>().is_some_and(|o| o.id == object))?;
+            let object_entry = sim.world.iter_entities().find(|e| {
+                e.get::<crate::object::SmartObject>()
+                    .is_some_and(|o| o.id == object)
+            })?;
             let smart_object = object_entry.get::<crate::object::SmartObject>()?;
             let object_type = sim
                 .world

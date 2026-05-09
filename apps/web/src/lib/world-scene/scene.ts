@@ -88,8 +88,9 @@ function addIntentRoute(
   agent: AgentRenderModel,
   selected: boolean,
 ): void {
-  const target = agent.intent?.targetPosition;
-  if (!target || agent.intent.phase !== "Walking") return;
+  const intent = agent.intent;
+  const target = intent?.targetPosition;
+  if (!intent || !target || intent.phase !== "Walking") return;
 
   const geometry = new THREE.BufferGeometry().setFromPoints([
     new THREE.Vector3(agent.position.x, 0.08, agent.position.z),
@@ -99,7 +100,7 @@ function addIntentRoute(
   line.name = `intent-route:${agent.id}`;
   line.userData = {
     agentId: agent.id,
-    targetObjectId: agent.intent.targetObjectId,
+    targetObjectId: intent.targetObjectId,
     kind: "intent-route",
     selected,
   };
@@ -107,8 +108,9 @@ function addIntentRoute(
 }
 
 function addSelectedTarget(root: THREE.Group, agent: AgentRenderModel): void {
-  const target = agent.intent?.targetPosition;
-  if (!target) return;
+  const intent = agent.intent;
+  const target = intent?.targetPosition;
+  if (!intent || !target) return;
 
   const marker = new THREE.Mesh(
     new THREE.RingGeometry(1.4, 1.9, 32),
@@ -124,7 +126,7 @@ function addSelectedTarget(root: THREE.Group, agent: AgentRenderModel): void {
   marker.rotation.x = -Math.PI / 2;
   marker.userData = {
     agentId: agent.id,
-    targetObjectId: agent.intent.targetObjectId,
+    targetObjectId: intent.targetObjectId,
     kind: "intent-target",
   };
   root.add(marker);

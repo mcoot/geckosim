@@ -4,9 +4,7 @@ use std::collections::HashMap;
 
 use gecko_sim_core::agent::{Need, Needs, Personality};
 use gecko_sim_core::ids::AgentId;
-use gecko_sim_core::ids::{
-    AdvertisementId, InteractionSpotId, LeafAreaId, ObjectTypeId,
-};
+use gecko_sim_core::ids::{AdvertisementId, InteractionSpotId, LeafAreaId, ObjectTypeId};
 use gecko_sim_core::object::{
     Advertisement, Effect, InteractionSpot, InterruptClass, MeshId, ObjectType, Op, Predicate,
     ScoreTemplate, StateValue,
@@ -75,11 +73,7 @@ fn fridge_object_type() -> ObjectType {
             id: AdvertisementId::new(1),
             display_name: "Eat snack".to_string(),
             preconditions: vec![
-                Predicate::ObjectState(
-                    "stocked".to_string(),
-                    Op::Eq,
-                    StateValue::Bool(true),
-                ),
+                Predicate::ObjectState("stocked".to_string(), Op::Eq, StateValue::Bool(true)),
                 Predicate::AgentNeed(Need::Hunger, Op::Lt, 0.6),
             ],
             effects: vec![Effect::AgentNeedDelta(Need::Hunger, 0.4)],
@@ -107,11 +101,7 @@ fn snapshot_current_action_exposes_object_intent() {
         },
     );
     let spawn_leaf: LeafAreaId = sim.world_graph().default_spawn_leaf;
-    let object_id = sim.spawn_test_object(
-        ObjectTypeId::new(1),
-        spawn_leaf,
-        Vec2::new(96.0, 88.0),
-    );
+    let object_id = sim.spawn_test_object(ObjectTypeId::new(1), spawn_leaf, Vec2::new(96.0, 88.0));
     sim.spawn_test_agent_with_needs(
         "Alice",
         Needs {
@@ -132,5 +122,5 @@ fn snapshot_current_action_exposes_object_intent() {
     assert_eq!(action.target_object_id, Some(object_id));
     assert_eq!(action.target_position, Some(Vec2::new(96.0, 87.0)));
     assert_eq!(action.target_label.as_deref(), Some("Fridge"));
-    assert_eq!(action.fraction_complete, 0.0);
+    assert!(action.fraction_complete.abs() <= f32::EPSILON);
 }

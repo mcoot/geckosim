@@ -32,11 +32,7 @@ export function WorldScene({ world, snapshot }: WorldSceneProps) {
     snapshot &&
     `tick ${snapshot.tick} | ${model.leaves.length} leaves | ${model.agents.length} agents | ${model.objects.length} objects`;
 
-  useEffect(() => {
-    if (selectedAgentId !== null && !selectedAgent) {
-      setSelectedAgentId(null);
-    }
-  }, [selectedAgent, selectedAgentId]);
+  const activeSelectedAgentId = selectedAgent?.id ?? null;
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -78,8 +74,8 @@ export function WorldScene({ world, snapshot }: WorldSceneProps) {
   }, []);
 
   useEffect(() => {
-    runtimeRef.current?.update(model, selectedAgentId);
-  }, [model, selectedAgentId]);
+    runtimeRef.current?.update(model, activeSelectedAgentId);
+  }, [activeSelectedAgentId, model]);
 
   return (
     <section
