@@ -6,13 +6,25 @@ import type {
   WorldSceneModel,
 } from "./model";
 
+export interface PopulateWorldGroupOptions {
+  selectedAgentId: number | null;
+}
+
 function material(color: string): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ color, metalness: 0, roughness: 0.85 });
 }
 
+function lineMaterial(selected: boolean): THREE.LineBasicMaterial {
+  return new THREE.LineBasicMaterial({
+    color: selected ? "#93c5fd" : "#60a5fa",
+    transparent: true,
+    opacity: selected ? 0.95 : 0.35,
+  });
+}
+
 function disposeObject(object: THREE.Object3D): void {
   object.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
+    if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
       child.geometry.dispose();
       const materials = Array.isArray(child.material) ? child.material : [child.material];
       for (const mat of materials) {
@@ -71,7 +83,58 @@ function addAgent(root: THREE.Group, agent: AgentRenderModel): void {
   root.add(group);
 }
 
-export function populateWorldGroup(root: THREE.Group, model: WorldSceneModel): void {
+function addIntentRoute(
+  root: THREE.Group,
+  agent: AgentRenderModel,
+  selected: boolean,
+): void {
+  const target = agent.intent?.targetPosition;
+  if (!target || agent.intent.phase !== "Walking") return;
+
+  const geometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(agent.position.x, 0.08, agent.position.z),
+    new THREE.Vector3(target.x, 0.08, target.z),
+  ]);
+  const line = new THREE.Line(geometry, lineMaterial(selected));
+  line.name = `intent-route:${agent.id}`;
+  line.userData = {
+    agentId: agent.id,
+    targetObjectId: agent.intent.targetObjectId,
+    kind: "intent-route",
+    selected,
+  };
+  root.add(line);
+}
+
+function addSelectedTarget(root: THREE.Group, agent: AgentRenderModel): void {
+  const target = agent.intent?.targetPosition;
+  if (!target) return;
+
+  const marker = new THREE.Mesh(
+    new THREE.RingGeometry(1.4, 1.9, 32),
+    new THREE.MeshBasicMaterial({
+      color: "#fbbf24",
+      transparent: true,
+      opacity: 0.9,
+      side: THREE.DoubleSide,
+    }),
+  );
+  marker.name = `intent-target:${agent.id}`;
+  marker.position.set(target.x, 0.1, target.z);
+  marker.rotation.x = -Math.PI / 2;
+  marker.userData = {
+    agentId: agent.id,
+    targetObjectId: agent.intent.targetObjectId,
+    kind: "intent-target",
+  };
+  root.add(marker);
+}
+
+export function populateWorldGroup(
+  root: THREE.Group,
+  model: WorldSceneModel,
+  options: PopulateWorldGroupOptions = { selectedAgentId: null },
+): void {
   for (const child of [...root.children]) {
     root.remove(child);
     disposeObject(child);
@@ -79,5 +142,11 @@ export function populateWorldGroup(root: THREE.Group, model: WorldSceneModel): v
 
   for (const leaf of model.leaves) addLeaf(root, leaf);
   for (const object of model.objects) addObject(root, object);
+  for (const agent of model.agents) {
+    addIntentRoute(root, agent, agent.id === options.selectedAgentId);
+  }
+  for (const agent of model.agents) {
+    if (agent.id === options.selectedAgentId) addSelectedTarget(root, agent);
+  }
   for (const agent of model.agents) addAgent(root, agent);
 }

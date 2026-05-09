@@ -33,6 +33,14 @@ const model: WorldSceneModel = {
       heading: Math.PI / 2,
       phase: "Walking",
       color: "#3b82f6",
+      intent: {
+        actionLabel: "Eat snack",
+        phase: "Walking",
+        progress: 0,
+        targetObjectId: 2,
+        targetPosition: { x: 25, y: 0, z: 30 },
+        targetLabel: "Fridge",
+      },
     },
   ],
 };
@@ -82,5 +90,55 @@ describe("world scene graph", () => {
     expect(root.getObjectByName("agent:7")).toBeUndefined();
     expect(root.getObjectByName("object:2")).toBeUndefined();
     expect(root.getObjectByName("leaf:1")).toBeDefined();
+  });
+
+  it("draws a faint route for walking agents with targets", () => {
+    const root = new THREE.Group();
+
+    populateWorldGroup(root, model, { selectedAgentId: null });
+
+    const route = root.getObjectByName("intent-route:7");
+    expect(route).toBeDefined();
+    expect(route?.userData).toMatchObject({
+      agentId: 7,
+      targetObjectId: 2,
+      kind: "intent-route",
+      selected: false,
+    });
+  });
+
+  it("draws selected route and target marker for the selected agent", () => {
+    const root = new THREE.Group();
+
+    populateWorldGroup(root, model, { selectedAgentId: 7 });
+
+    expect(root.getObjectByName("intent-route:7")?.userData).toMatchObject({
+      selected: true,
+    });
+    expect(root.getObjectByName("intent-target:7")?.userData).toMatchObject({
+      agentId: 7,
+      targetObjectId: 2,
+      kind: "intent-target",
+    });
+  });
+
+  it("does not draw faint routes for non-walking agents", () => {
+    const root = new THREE.Group();
+    const performing = {
+      ...model,
+      agents: [
+        {
+          ...model.agents[0],
+          phase: "Performing" as const,
+          intent: model.agents[0].intent
+            ? { ...model.agents[0].intent, phase: "Performing" as const }
+            : null,
+        },
+      ],
+    };
+
+    populateWorldGroup(root, performing, { selectedAgentId: null });
+
+    expect(root.getObjectByName("intent-route:7")).toBeUndefined();
   });
 });
